@@ -4,7 +4,7 @@ export ChronoNode, Chronogram
 export fromnewick, gettips, getage
 export preorder, postorder
 export rename, rename!
-export readnexus, filter
+export readnexus, subtree
 
 using Parameters
 
@@ -17,6 +17,18 @@ using Parameters
 	t_branch::Float64 = 0.0
 end
 const Chronogram = Vector{ChronoNode}
+
+function Base.:(==)(node1::ChronoNode, node2::ChronoNode)
+	node1.name      == node2.name      &&
+	node1.i_parent  == node2.i_parent  &&
+	node1.i_sibling == node2.i_sibling &&
+	node1.i_child   == node2.i_child   &&
+	isapprox(node1.t_root,   node2.t_root) &&
+	isapprox(node1.t_branch, node2.t_branch)
+end
+
+Base.:(==)(tree1::Chronogram, tree2::Chronogram) = 
+	length(tree1) == length(tree2) && all(tree1 .== tree2)
 
 """
 	ignore_comments(str::AbstractString)
@@ -209,17 +221,39 @@ function readnexus(fname::AbstractString; every=0)
 	return trees
 end
 
-function filter(tipset::Set{<:AbstractString}, oldtree::Chronogram)
-	selected = falses(length(oldtree))
+function get_selected(oldtree::Chronogram, tipset::Set{<:AbstractString};
+		simplify::Bool=true, keeproot::Bool=false)
+	counts = zeros(Int, length(oldtree))
 	for i = postorder(oldtree)[1:end-1]
 		if oldtree[i].i_child == 0 && oldtree[i].name in tipset
-			selected[i] = true
+			counts[i] = 2
 		end
-		selected[oldtree[i].i_parent] |= selected[i]
+		counts[i] >= 1 && (counts[oldtree[i].i_parent] += 1)
 	end
-	oldtonew = Dict(findall(selected) .=> 1:sum(selected))
+	keeproot && (counts[1] = 2)
+	counts .>= simplify + 1
+end
+
+function calibrate_time!(newtree::Chronogram)
+	t_root_offset = newtree[1].t_root
+	newtree[1].t_root = 0.0
+	newtree[1].t_branch = 0.0
+	for i = preorder(newtree)[2:end]
+		newtree[i].t_root -= t_root_offset
+		newtree[i].t_branch = newtree[i].t_root - 
+			newtree[newtree[i].i_parent].t_root
+	end
+	newtree
+end
+
+function subtree(oldtree::Chronogram, tipset::Set{<:AbstractString}; 
+		simplify::Bool=true, keeproot::Bool=false)
+	selected = get_selected(oldtree, tipset; 
+		simplify=simplify, keeproot=keeproot)
+	newnum = sum(selected)
+	oldtonew = Dict(findall(selected) .=> 1:newnum)
 	newtree = Chronogram()
-	lastchild = zeros(Int, sum(selected))
+	lastchild = zeros(Int, newnum)
 	p = 0
 	for oldnode = oldtree[selected]
 		p += 1
@@ -227,8 +261,15 @@ function filter(tipset::Set{<:AbstractString}, oldtree::Chronogram)
 		push!(newtree, newnode)
 		newnode.i_sibling = 0
 		newnode.i_child = 0
-		oldnode.i_parent == 0 && continue
-		newnode.i_parent = oldtonew[oldnode.i_parent]
+		i = oldnode.i_parent
+		while i > 0 && ! selected[i]
+			i = oldtree[i].i_parent
+		end
+		if i == 0
+			newnode.i_parent = 0
+			continue
+		end
+		newnode.i_parent = oldtonew[i]
 		if newtree[newnode.i_parent].i_child == 0
 			newtree[newnode.i_parent].i_child = p
 		end
@@ -237,7 +278,7 @@ function filter(tipset::Set{<:AbstractString}, oldtree::Chronogram)
 		end
 		lastchild[newnode.i_parent] = p
 	end
-	newtree
+	calibrate_time!(newtree)
 end
 
 end # module TreeOfLife
