@@ -1,14 +1,18 @@
 module TreeOfLife
 
-export ChronoNode, Chronogram
+export Node, Tree, ChronoNode, ChronoTree
 export fromnewick, gettips, getage
 export preorder, postorder
 export rename, rename!
-export readnexus, subtree
+export readnexus
+export subtree, phylodiv
 
 using Parameters
 
-@with_kw mutable struct ChronoNode
+abstract type Node end
+abstract type Tree end
+
+@with_kw mutable struct ChronoNode <: Node
 	name::String = ""
 	i_parent::Int = 0
 	i_sibling::Int = 0
@@ -16,8 +20,29 @@ using Parameters
 	t_root::Float64 = 0.0
 	t_branch::Float64 = 0.0
 end
-const Chronogram = Vector{ChronoNode}
 
+struct ChronoTree <: Tree
+	nodes::Vector{ChronoNode}
+end
+ChronoTree() = ChronoTree(Vector{ChronoNode}())
+
+Base.length(tree::Tree) = length(tree.nodes)
+Base.getindex(tree::Tree, i) = getindex(tree.nodes, i)
+Base.setindex!(tree::Tree, node::Node, i) = setindex!(tree.nodes, node, i)
+Base.firstindex(tree::Tree) = firstindex(tree.nodes)
+Base.lastindex(tree::Tree) = lastindex(tree.nodes)
+Base.iterate(tree::Tree) = iterate(tree.nodes)
+Base.iterate(tree::Tree, i) = iterate(tree.nodes, i)
+Base.eachindex(tree::Tree) = eachindex(tree.nodes)
+Base.push!(tree::Tree, node::Node) = push!(tree.nodes, node)
+
+"""
+	Base.:(==)(node1::ChronoNode, node2::ChronoNode)
+
+Tells if two nodes are identical, in the sense that they have the same name, 
+the same parent, sibling, and child, as well as they have approximate branch 
+lengths.
+"""
 function Base.:(==)(node1::ChronoNode, node2::ChronoNode)
 	node1.name      == node2.name      &&
 	node1.i_parent  == node2.i_parent  &&
@@ -27,7 +52,13 @@ function Base.:(==)(node1::ChronoNode, node2::ChronoNode)
 	isapprox(node1.t_branch, node2.t_branch)
 end
 
-Base.:(==)(tree1::Chronogram, tree2::Chronogram) = 
+"""
+	Base.:(==)(tree1::ChronoTree, tree2::ChronoTree)
+
+Tells if two trees are identical, in the sense that they have the same nodes. 
+Cf. `isisomorph`.
+"""
+Base.:(==)(tree1::ChronoTree, tree2::ChronoTree) = 
 	length(tree1) == length(tree2) && all(tree1 .== tree2)
 
 """
@@ -47,6 +78,12 @@ function ignore_comments(str::AbstractString)
 	return output
 end
 
+"""
+	parse_newick(str::AbstractString)
+
+Parses a newick-format tree string into segments of different types according 
+to their syntactical meanings. Used by `fromnewick`.
+"""
 function parse_newick(str::AbstractString)
 	elements = Union{Char, String, Float64, Tuple{String}}[]
 	register = ""
@@ -73,8 +110,16 @@ function parse_newick(str::AbstractString)
 	filter(x -> ! in(x, [':', ',', ';']), elements)
 end
 
+"""
+	fromnewick(str::AbstractString; nocomments::Bool=false)
+
+Converts a newick-format tree string `str` to a `ChronoTree` instance.
+The argument `nocomments` controls whether the comments (enclosed by square 
+brackets) are wiped out; by default it is set to `false`, i.e., all comments 
+are kept.
+"""
 function fromnewick(str::AbstractString; nocomments::Bool=false)
-	tree = [ChronoNode()]
+	tree = ChronoTree([ChronoNode()])
 	stack = [1, 0]
 	p = 1
 	elements = parse_newick(str)
@@ -108,60 +153,77 @@ function fromnewick(str::AbstractString; nocomments::Bool=false)
 	tree
 end
 
-gettips(tree::Chronogram) = filter(i -> tree[i].i_child == 0, eachindex(tree))
+"""
+	gettips(tree::ChronoTree)
 
-function getage(tree::Chronogram)
+Returns indices of tips nodes on `tree`.
+"""
+gettips(tree::ChronoTree) = filter(i -> tree[i].i_child == 0, eachindex(tree))
+
+"""
+	getage(tree::ChronoTree)
+
+Returns an arithmetic mean of ages (from the root node) of tip nodes on `tree`.
+The argument `getrelstd` controls whether the relative standard deviation is 
+appended to the output (`(mean, relstd)`) or not (only `mean`); by default it 
+is set to `false`.
+"""
+function getage(tree::ChronoTree; getrelstd::Bool=false)
 	ages = getfield.(gettips(tree), :t_root)
 	mean = sum(ages) / length(ages)
 	std = sqrt(sum((ages .- mean) .^ 2) / (length(ages) - 1))
 	relstd = std / mean
-	@info "Relative standard deviation is $relstd."
-	return mean
+	if getrelstd
+		return mean, relstd
+	else
+		@info "Relative standard deviation is $relstd."
+		return mean
+	end
 end
 
 """
-	preorder(tree::Chronogram, i=1)
+	preorder(tree::ChronoTree, i=1)
 
 Returns the pre-order traversal sequence of the whole `tree`, or its subtree 
 with root node `tree[i]`.
 """
-function preorder(tree::Chronogram, i=1)
+function preorder(tree::ChronoTree, i=1)
 	sequence = [i]
 	tree[i].i_child > 0 && preorder!(sequence, tree, tree[i].i_child)
 	sequence
 end
-function preorder!(sequence, tree::Chronogram, i=1)
+function preorder!(sequence, tree::ChronoTree, i=1)
 	push!(sequence, i)
 	tree[i].i_child > 0 && preorder!(sequence, tree, tree[i].i_child)
 	tree[i].i_sibling > 0 && preorder!(sequence, tree, tree[i].i_sibling)
 end
 
 """
-	preorder(tree::Chronogram, i=1)
+	preorder(tree::ChronoTree, i=1)
 
 Returns the post-order traversal sequence of the whole `tree`, or its subtree 
 with root node `tree[i]`.
 """
-function postorder(tree::Chronogram, i=1)
+function postorder(tree::ChronoTree, i=1)
 	sequence = Int[]
 	tree[i].i_child > 0 && postorder!(sequence, tree, tree[i].i_child)
 	push!(sequence, i)
 end
-function postorder!(sequence, tree::Chronogram, i=1)
+function postorder!(sequence, tree::ChronoTree, i=1)
 	tree[i].i_child > 0 && postorder!(sequence, tree, tree[i].i_child)
 	push!(sequence, i)
 	tree[i].i_sibling > 0 && postorder!(sequence, tree, tree[i].i_sibling)
 end
 
 """
-	rename(oldtree::Chronogram, 
+	rename(oldtree::ChronoTree, 
 		oldtonew::Dict{<:AbstractString,<:AbstractString}
 
 Creates a new tree whose nodes are respectively renamed from the `oldtree` by 
 a mapping from old names to new names. Specifically, nodes with empty names 
 remain.
 """
-function rename(oldtree::Chronogram, 
+function rename(oldtree::ChronoTree, 
 		oldtonew::Dict{<:AbstractString,<:AbstractString})
 	newtree = deepcopy(oldtree)
 	for node = newtree
@@ -172,13 +234,13 @@ function rename(oldtree::Chronogram,
 end
 
 """
-	rename!(tree::Chronogram, 
+	rename!(tree::ChronoTree, 
 		oldtonew::Dict{<:AbstractString,<:AbstractString}
 
 Renames nodes in `tree` by a mapping from old names to new names. 
 Specifically, nodes with empty names remain.
 """
-function rename!(tree::Chronogram, 
+function rename!(tree::ChronoTree, 
 		oldtonew::Dict{<:AbstractString,<:AbstractString})
 	for node = tree
 		isempty(node.name) && continue
@@ -188,7 +250,7 @@ function rename!(tree::Chronogram,
 end
 
 function readnexus(fname::AbstractString; every=0)
-	trees = Chronogram[]
+	trees = ChronoTree[]
 	open(fname, "r") do fin
 		line = readline(fin)
 		@assert line == "#NEXUS"
@@ -221,7 +283,14 @@ function readnexus(fname::AbstractString; every=0)
 	return trees
 end
 
-function get_selected(oldtree::Chronogram, tipset::Set{<:AbstractString};
+"""
+	get_selected(oldtree::ChronoTree, tipset::Set{<:AbstractString};
+		simplify::Bool=true, keeproot::Bool=false)
+
+Selects nodes of a subtree generated from a given set of tips on `tree`. Used by `subtree`. 
+Arguments `simplify` and `keeproot` have same meanings as in `subtree`. 
+"""
+function get_selected(oldtree::ChronoTree, tipset::Set{<:AbstractString};
 		simplify::Bool=true, keeproot::Bool=false)
 	counts = zeros(Int, length(oldtree))
 	for i = postorder(oldtree)[1:end-1]
@@ -234,7 +303,14 @@ function get_selected(oldtree::Chronogram, tipset::Set{<:AbstractString};
 	counts .>= simplify + 1
 end
 
-function calibrate_time!(newtree::Chronogram)
+"""
+	calibrate_time!(newtree::ChronoTree)
+
+Calibrates all `t_root` values of nodes in `newtree`, so that the root's 
+`t_root` is zero. Then, all `t_branch` values are recalculated according to 
+`t_root` values. Used by `subtree`.
+"""
+function calibrate_time!(newtree::ChronoTree)
 	t_root_offset = newtree[1].t_root
 	newtree[1].t_root = 0.0
 	newtree[1].t_branch = 0.0
@@ -246,13 +322,22 @@ function calibrate_time!(newtree::Chronogram)
 	newtree
 end
 
-function subtree(oldtree::Chronogram, tipset::Set{<:AbstractString}; 
+"""
+	subtree(oldtree::ChronoTree, tipset::Set{<:AbstractString}; 
+		simplify::Bool=true, keeproot::Bool=false)
+
+Extracts the subtree generated from a given set of tips on `tree`. 
+The argument `simplify` controls whether internal node with only one child needs to be reduced, i.e., connecting directly its child and its parent; by default it is set to `true`. 
+The argument `keeproot` controls whether the original root node needs to be contained in the subtree; by default it is set to `false`, in other words, yielding a truly minimum spanning tree (MST). 
+When `simplify` is set to `false`, the value of `keeproot` has no effect.
+"""
+function subtree(oldtree::ChronoTree, tipset::Set{<:AbstractString}; 
 		simplify::Bool=true, keeproot::Bool=false)
 	selected = get_selected(oldtree, tipset; 
 		simplify=simplify, keeproot=keeproot)
 	newnum = sum(selected)
 	oldtonew = Dict(findall(selected) .=> 1:newnum)
-	newtree = Chronogram()
+	newtree = ChronoTree()
 	lastchild = zeros(Int, newnum)
 	p = 0
 	for oldnode = oldtree[selected]
@@ -280,5 +365,25 @@ function subtree(oldtree::Chronogram, tipset::Set{<:AbstractString};
 	end
 	calibrate_time!(newtree)
 end
+
+"""
+	sum_t_branch(tree::ChronoTree)
+
+Calculates the sum of branch lengths of `tree`. Used by `phylodiv`. 
+"""
+sum_t_branch(tree::ChronoTree) = sum(n.t_branch for n = tree)
+
+"""
+	phylodiv(tree::ChronoTree, tipset::Set{<:AbstractString}; 
+		keeproot::Bool=false)
+
+Calculates the phylogenetic diversity (PD) of a given set of tips on `tree`, 
+i.e., the sum of branch lengths of the subtree generated from the set. 
+The argument `keeproot` controls whether the original root node needs to be 
+contained in the subtree; by default it is set to `false`.
+"""
+phylodiv(tree::ChronoTree, tipset::Set{<:AbstractString}; 
+		keeproot::Bool=false) = 
+	sum_t_branch(subtree(tree, tipset, simplify=true, keeproot=keeproot))
 
 end # module TreeOfLife
