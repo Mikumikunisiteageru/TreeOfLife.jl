@@ -105,6 +105,12 @@ end
 	@test isnothing(getmrca(tree, ["G"]))
 end
 
+@testset "getdescnames" begin
+	@test getdescnames(tree) == 
+		[["A", "B", "C", "D"], ["A"], ["B"], ["C", "D"], ["C"], ["D"]]
+	@test getdescnames(tree) == getdescnames.([tree], eachindex(tree))
+end
+
 @testset "ismonophyl" begin
 	@test ismonophyl(tree, ["A", "B"]) == false
 	@test ismonophyl(tree, ["C", "D"]) == true

@@ -5,12 +5,16 @@ module TreeOfLife
 export Node, CladoNode, ChronoNode
 export Tree, CladoTree, ChronoTree
 export fromnewick, tonewick
-export gettips, mean, getage
+export gettips, gettipnames, alldistinct
+export getage, getages
 export preorder, postorder
 export isroot, istip, getname, hassibling
 export rename, rename!
 export subtree, getmrca, ismonophyl, phylodiv
 export cutfromroot, cutfromtips
+export isbinary
+export treehash, isomorphic
+export getdescnames
 
 include("formats.jl")
 
@@ -321,6 +325,12 @@ Returns indices of tips nodes on `tree`.
 """
 gettips(tree::Tree) = filter(i -> tree[i].i_child == 0, eachindex(tree))
 
+gettipnames(tree::Tree) = getname.(tree[gettips(tree)])
+
+alldistinct(tree::Tree) = allunique(gettipnames(tree))
+
+isbinary(tree::Tree) = all(get_counts(tree, gettipnames(tree)) .== 2)
+
 """
 	mean(a::Vector{Float64})
 
@@ -354,6 +364,15 @@ function getage(tree::ChronoTree;
 		# @info "Relative error is $relstd."
 		return mean
 	end
+end
+
+function getages(tree::ChronoTree; average=mean, reltol=1e-8)
+	ages = getfield.(tree[gettips(tree)], :t_root)
+	mean = average(ages)
+	relerr = maximum(abs.(ages .- mean)) / mean
+	! isnan(reltol) && relerr > reltol && throw(ArgumentError(
+		"Ages of the tips have relative error $relerr, considered different!"))
+	return mean .- getfield.(tree, :t_root)
 end
 
 # TREE TRAVERSALS
@@ -536,11 +555,22 @@ end
 
 getmrca(tree::Tree, tipset) = findfirst(get_counts(tree, tipset) .>= 2)
 
-function ismonophyl(tree::Tree, tipset)
-	mrca = getmrca(tree, tipset)
-	descendents = filter(i -> istip(tree, i), preorder(tree, mrca))
-	return Set(getname.(tree[descendents])) == Set(tipset)
+getdescs(tree::Tree, mrca::Int) = 
+	filter(i -> istip(tree, i), preorder(tree, mrca))
+
+getdescnames(tree::Tree, mrca::Int) = getname.(tree[getdescs(tree, mrca)])
+
+function getdescnames(tree::Tree)
+	descnames = [String[] for _ = tree]
+	for i = postorder(tree)[1:end-1]
+		istip(tree, i) && push!(descnames[i], getname(tree, i))
+		append!(descnames[tree[i].i_parent], descnames[i])
+	end
+	descnames
 end
+
+ismonophyl(tree::Tree, tipset) = 
+	Set(getdescnames(tree, getmrca(tree, tipset))) == Set(tipset)
 
 """
 	sum_t_branch(tree::ChronoTree)
@@ -559,5 +589,31 @@ contained in the subtree; by default it is set to `false`.
 """
 phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false) = 
 	sum_t_branch(subtree(tree, tipset, simplify=true, keeproot=keeproot))
+
+# ISOMORPHISM
+
+function treehash(tree::CladoTree, h::UInt=zero(UInt))
+	hashes = fill(UInt(1), length(tree))
+	for i = eachindex(tree)[end:-1:2]
+		hashes[i] *= hash(tree[i].name, h)
+		hashes[tree[i].i_parent] += hashes[i]
+	end
+	return hashes[1] * hash(tree[1].name, h)
+end
+
+function treehash(tree::ChronoTree, h::UInt=zero(UInt))
+	hashes = fill(UInt(1), length(tree))
+	for i = eachindex(tree)[end:-1:2]
+		hashes[i] *= xor(hash(tree[i].name, h), hash(tree[i].t_branch, h)) 
+		hashes[tree[i].i_parent] += hashes[i]
+	end
+	return hashes[1] * hash(tree[1].name, h)
+end
+
+isomorphic(tree1::CladoTree, tree2::CladoTree) = 
+	treehash(tree1) == treehash(tree2)
+
+isomorphic(tree1::ChronoTree, tree2::ChronoTree) = 
+	treehash(tree1) == treehash(tree2)
 
 end # module TreeOfLife
