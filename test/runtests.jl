@@ -25,6 +25,9 @@ cd(joinpath(pkgdir(TreeOfLife), "test", "files"))
 	@test CladoTree([CladoNode(name="A")]) == CladoTree([CladoNode(name="A")])
 	@test ChronoTree([ChronoNode(name="A")]) == 
 		ChronoTree([ChronoNode(name="A")])
+	@test CladoNode(ChronoNode(name="A")) == CladoNode(name="A")
+	@test CladoTree(tree) == 
+		CladoTree([CladoNode(name="A"), CladoNode(name="B")])
 end
 
 @testset "ignore_comments" begin
@@ -36,19 +39,19 @@ end
 	@test TOL.ignore_comments("生命[之]树") == "生命树"
 end
 
-@testset "parse_newick" begin
-	@test_throws ArgumentError TOL.parse_newick("(A,B,(C,D))")
-	@test TOL.parse_newick("(A,B,(C,D));") ==
+@testset "from_newick" begin
+	@test_throws ArgumentError TOL.from_newick("(A,B,(C,D))")
+	@test TOL.from_newick("(A,B,(C,D));") ==
 		['(', "A", "B", '(', "C", "D", ')', ')']
-	@test TOL.parse_newick("(A:0.1,B:0.2,(C:0.3,D:0.4):0.5);") ==
+	@test TOL.from_newick("(A:0.1,B:0.2,(C:0.3,D:0.4):0.5);") ==
 		['(', "A", 0.1, "B", 0.2, '(', "C", 0.3, "D", 0.4, ')', 0.5, ')']
-	@test TOL.parse_newick("(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;") ==
+	@test TOL.from_newick("(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;") ==
 		['(', "A", 0.1, "B", 0.2, 
 			  '(', "C", 0.3, "D", 0.4, ')', ("E",), 0.5, ')', ("F",)]
 end
 
 @testset "fromnewick" begin
-	tree_b = fromnewick("(A,B,(C,D));")
+	global tree_b = fromnewick("(A,B,(C,D)E)F;")
 	@test isa(tree_b, CladoTree)
 	@test_throws ArgumentError fromnewick("(A:0.1,B,(C,D));")
 	global tree = fromnewick("(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;")
@@ -68,6 +71,12 @@ end
 	@test tree2[3].name == "296"
 end
 
+@testset "tonewick" begin
+	@test tonewick(fromnewick("(A,B,(C,D));")) == "(A,B,(C,D));"
+	@test tonewick(tree_b) == "(A,B,(C,D)E)F;"
+	@test tonewick(tree) == "(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;"
+end
+
 @testset "gettips" begin
 	tree = fromnewick("(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;")
 	@test gettips(tree) == [2, 3, 5, 6]
@@ -85,6 +94,22 @@ end
 	@test subtree(tree, Set(["A", "C"])) == fromnewick("(A:0.1,C:0.8)F;")
 	@test subtree(tree, Set(["A", "C"]); simplify=false) == 
 		fromnewick("(A:0.1,(C:0.3)E:0.5)F;")
+end
+
+@testset "getmrca" begin
+	@test getmrca(tree, ["A", "B"]) == 1
+	@test getmrca(tree, ["C", "D"]) == 4
+	@test getmrca(tree, ["C"]) == 5
+	@test getmrca(tree, ["A", "C"]) == 1
+	@test isnothing(getmrca(tree, []))
+	@test isnothing(getmrca(tree, ["G"]))
+end
+
+@testset "ismonophyl" begin
+	@test ismonophyl(tree, ["A", "B"]) == false
+	@test ismonophyl(tree, ["C", "D"]) == true
+	@test ismonophyl(tree, ["A", "C"]) == false
+	@test ismonophyl(tree, ["C"]) == true
 end
 
 @testset "cutfromroot" begin

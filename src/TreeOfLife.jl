@@ -1,12 +1,20 @@
+# src/TreeOfLife.jl
+
 module TreeOfLife
 
-export Node, Tree, CladoNode, CladoTree, ChronoNode, ChronoTree
-export fromnewick, gettips, mean, getage
+export Node, CladoNode, ChronoNode
+export Tree, CladoTree, ChronoTree
+export fromnewick, tonewick
+export gettips, mean, getage
 export preorder, postorder
+export isroot, istip, getname, hassibling
 export rename, rename!
-export subtree, phylodiv
+export subtree, getmrca, ismonophyl, phylodiv
 export cutfromroot, cutfromtips
-export readnexus
+
+include("formats.jl")
+
+# TYPES
 
 using Parameters
 
@@ -18,6 +26,7 @@ abstract type Tree end
 	i_parent::Int = 0
 	i_sibling::Int = 0
 	i_child::Int = 0
+	dict::Dict{Symbol,Any} = Dict{Symbol,Any}()
 end
 
 @with_kw mutable struct ChronoNode <: Node
@@ -27,6 +36,7 @@ end
 	i_child::Int = 0
 	t_root::Float64 = 0.0
 	t_branch::Float64 = 0.0
+	dict::Dict{Symbol,Any} = Dict{Symbol,Any}()
 end
 
 struct CladoTree <: Tree
@@ -38,6 +48,14 @@ struct ChronoTree <: Tree
 	nodes::Vector{ChronoNode}
 end
 ChronoTree() = ChronoTree(Vector{ChronoNode}())
+
+CladoNode(node::ChronoNode) = CladoNode(
+	name=node.name, i_parent=node.i_parent, 
+	i_sibling=node.i_sibling, i_child=node.i_child)
+
+CladoTree(tree::ChronoTree) = CladoTree(CladoNode.(tree))
+
+# BASE METHODS OVERLOADING
 
 Base.length(tree::Tree) = length(tree.nodes)
 Base.getindex(tree::Tree, i) = getindex(tree.nodes, i)
@@ -82,8 +100,11 @@ Cf. `isisomorph`.
 Base.:(==)(tree1::Tree, tree2::Tree) = 
 	length(tree1) == length(tree2) && all(tree1 .== tree2)
 
+# CALIBRATING BRANCH LENGTHS (FOR CHRONOTREES)
+
 """
 	calibrate_t_root!(tree::ChronoTree)
+	calibrate_t_root!(tree::Tree)
 
 Calculates all `t_root` values according to `t_branch` values. Used by 
 `fromnewick`.
@@ -92,10 +113,14 @@ function calibrate_t_root!(tree::ChronoTree)
 	for node = tree[2:end]
 		node.t_root = node.t_branch + tree[node.i_parent].t_root
 	end
+	tree
 end
+
+calibrate_t_root!(tree::Tree) = tree
 
 """
 	calibrate_t_branch!(tree::ChronoTree)
+	calibrate_t_branch!(tree::Tree)
 
 Calibrates all `t_root` values of nodes in `tree`, so that the root's `t_root` 
 is zero, and then recalculates all `t_branch` values according to the new 
@@ -112,6 +137,10 @@ function calibrate_t_branch!(tree::ChronoTree)
 	end
 	tree
 end
+
+calibrate_t_branch!(tree::Tree) = tree
+
+# PARSING NEWICK-FORMAT TREE STRINGS
 
 """
 	ignore_comments(str::AbstractString)
@@ -131,12 +160,12 @@ function ignore_comments(str::AbstractString)
 end
 
 """
-	parse_newick(str::AbstractString)
+	from_newick(str::AbstractString)
 
-Parses a newick-format tree string into segments of different types according 
+Parses a Newick-format tree string into segments of different types according 
 to their syntactical meanings. Used by `fromnewick`.
 """
-function parse_newick(str::AbstractString)
+function from_newick(str::AbstractString)
 	endswith(str, ';') || 
 		throw(ArgumentError(
 			"The Newick-format string does not end with a semicolon!"))
@@ -168,7 +197,7 @@ end
 """
 	get_tree_type(elements::Vector)
 
-Tells whether a vector of elements parsed from some newick-syntax tree string 
+Tells whether a vector of elements parsed from some Newick-syntax tree string 
 is a chronogram or a cladogram. Used by `fromnewick`.
 """
 function get_tree_type(elements::Vector)
@@ -190,13 +219,13 @@ end
 """
 	fromnewick(str::AbstractString; nocomments::Bool=false)
 
-Converts a newick-format tree string `str` to a `ChronoTree` instance.
+Converts a Newick-format tree string `str` to a `ChronoTree` instance.
 The argument `nocomments` controls whether the comments (enclosed by square 
 brackets) are wiped out; by default it is set to `false`, i.e., all comments 
 are kept.
 """
 function fromnewick(str::AbstractString; nocomments::Bool=false)
-	elements = parse_newick(str)
+	elements = from_newick(str)
 	T, N = get_tree_type(elements)
 	tree = T([N()])
 	stack = [1, 0]
@@ -225,9 +254,65 @@ function fromnewick(str::AbstractString; nocomments::Bool=false)
 			tree[stack[end]].t_branch = element
 		end
 	end
-	T == ChronoTree && calibrate_t_root!(tree)
-	tree
+	return calibrate_t_root!(tree)
 end
+
+function to_newick!(elements::Vector, tree::CladoTree, i::Int)
+	ic = tree[i].i_child
+	if ic == 0
+		push!(elements, tree[i].name)
+	else # ic > 0
+		push!(elements, '(')
+		to_newick!(elements, tree, ic)
+		push!(elements, ')', tree[i].name)
+	end
+	is = tree[i].i_sibling
+	if is > 0
+		push!(elements, ',')
+		to_newick!(elements, tree, is)
+	end
+end
+
+function to_newick!(elements::Vector, tree::ChronoTree, i::Int)
+	ic = tree[i].i_child
+	if ic == 0
+		push!(elements, tree[i].name, ':', tree[i].t_branch)
+	else # ic > 0
+		push!(elements, '(')
+		to_newick!(elements, tree, ic)
+		push!(elements, ')', tree[i].name, ':', tree[i].t_branch)
+	end
+	is = tree[i].i_sibling
+	if is > 0
+		push!(elements, ',')
+		to_newick!(elements, tree, is)
+	end
+end
+
+function tonewick(tree::CladoTree)
+	elements = []
+	to_newick!(elements, tree, 1)
+	push!(elements, ';')
+	return join(elements)
+end
+
+function tonewick(tree::ChronoTree)
+	elements = []
+	to_newick!(elements, tree, 1)
+	pop!(elements)
+	elements[end] = ';'
+	return join(elements)
+end
+
+# NODE JUDGMENTS
+
+isroot(tree::Tree, i::Int) = i == 1
+istip(tree::Tree, i::Int) = tree[i].i_child == 0
+hassibling(tree::Tree, i::Int) = tree[i].i_sibling > 0
+getname(tree::Tree, i::Int) = tree[i].name
+getname(node::Node) = node.name
+
+# GETTING TIPS AND AGE
 
 """
 	gettips(tree::Tree)
@@ -271,6 +356,8 @@ function getage(tree::ChronoTree;
 	end
 end
 
+# TREE TRAVERSALS
+
 """
 	preorder(tree::Tree, i=1)
 
@@ -304,6 +391,8 @@ function postorder!(sequence, tree::Tree, i=1)
 	push!(sequence, i)
 	tree[i].i_sibling > 0 && postorder!(sequence, tree, tree[i].i_sibling)
 end
+
+# RENAMING TREE NODES (FOR NEXUS FORMAT)
 
 """
 	rename(oldtree::Tree, 
@@ -339,16 +428,53 @@ function rename!(tree::Tree,
 	tree
 end
 
+# GETTING TEMPORAL SECTIONS (FOR CHRONOGRAMS)
+
 """
-	get_selected(oldtree::Tree, tipset::Set{<:AbstractString};
+	cutfromroot(tree::ChronoTree, dist::Real; keep::Symbol=:both)
+
+Finds the temporal section by `dist` units after the root is born. 
+The argument `keep` can be set among three options, i.e., `:both` (tuples 
+containing parents and childs), `:parent`, and `:child`. 
+"""
+function cutfromroot(tree::ChronoTree, dist::Real; keep::Symbol=:both)
+	keep in [:both, :parent, :child] ||
+		throw(ArgumentError(
+			"The argument `keep` has to be `:both`, `:parent`, or `:child`!"))
+	pcpairs = NTuple{2,Int}[]
+	for i = 2:length(tree)
+		node = tree[i]
+		tree[node.i_parent].t_root < dist <= node.t_root && 
+			push!(pcpairs, (node.i_parent, i))
+	end
+	keep == :parent && return unique(first.(pcpairs))
+	keep == :child  && return last.(pcpairs)
+	return pcpairs
+end
+
+"""
+	cutfromtips(tree::ChronoTree, dist::Real; keep::Symbol=:both)
+
+Finds the temporal section by `dist` units before the first tip is born.
+The argument `keep` can be set among three options, i.e., `:both` (tuples 
+containing parents and childs), `:parent`, and `:child`. 
+"""
+function cutfromtips(tree::ChronoTree, dist::Real; keep::Symbol=:both)
+	age = getage(tree; average=minimum)
+	cutfromroot(tree, age - dist; keep=keep)
+end
+
+# ABOUT TIP SUBSETS
+
+"""
+	get_selected(oldtree::Tree, tipset; 
 		simplify::Bool=true, keeproot::Bool=false)
 
 Selects nodes of a subtree generated from a given set of tips on `tree`. Used 
 by `subtree`. 
 Arguments `simplify` and `keeproot` have same meanings as in `subtree`. 
 """
-function get_selected(oldtree::Tree, tipset::Set{<:AbstractString};
-		simplify::Bool=true, keeproot::Bool=false)
+function get_counts(oldtree::Tree, tipset)
 	counts = zeros(Int, length(oldtree))
 	for i = postorder(oldtree)[1:end-1]
 		if oldtree[i].i_child == 0 && oldtree[i].name in tipset
@@ -356,12 +482,11 @@ function get_selected(oldtree::Tree, tipset::Set{<:AbstractString};
 		end
 		counts[i] >= 1 && (counts[oldtree[i].i_parent] += 1)
 	end
-	keeproot && (counts[1] = 2)
-	counts .>= simplify + 1
+	return counts
 end
 
 """
-	subtree(oldtree::ChronoTree, tipset::Set{<:AbstractString}; 
+	subtree(oldtree::ChronoTree, tipset; 
 		simplify::Bool=true, keeproot::Bool=false)
 
 Extracts the subtree generated from a given set of tips on `tree`. 
@@ -373,10 +498,11 @@ contained in the subtree; by default it is set to `false`, in other words,
 yielding a truly minimum spanning tree (MST). 
 When `simplify` is set to `false`, the value of `keeproot` has no effect.
 """
-function subtree(oldtree::Tree, tipset::Set{<:AbstractString}; 
+function subtree(oldtree::Tree, tipset; 
 		simplify::Bool=true, keeproot::Bool=false)
-	selected = get_selected(oldtree, tipset; 
-		simplify=simplify, keeproot=keeproot)
+	counts = get_counts(oldtree, tipset)
+	keeproot && (counts[1] = 2)
+	selected = counts .>= simplify + 1
 	newnum = sum(selected)
 	oldtonew = Dict(findall(selected) .=> 1:newnum)
 	newtree = empty(oldtree)
@@ -405,8 +531,15 @@ function subtree(oldtree::Tree, tipset::Set{<:AbstractString};
 		end
 		lastchild[newnode.i_parent] = p
 	end
-	isa(oldtree, ChronoTree) && calibrate_t_branch!(newtree)
-	newtree
+	return calibrate_t_branch!(newtree)
+end
+
+getmrca(tree::Tree, tipset) = findfirst(get_counts(tree, tipset) .>= 2)
+
+function ismonophyl(tree::Tree, tipset)
+	mrca = getmrca(tree, tipset)
+	descendents = filter(i -> istip(tree, i), preorder(tree, mrca))
+	return Set(getname.(tree[descendents])) == Set(tipset)
 end
 
 """
@@ -417,70 +550,14 @@ Calculates the sum of branch lengths of `tree`. Used by `phylodiv`.
 sum_t_branch(tree::ChronoTree) = sum(n.t_branch for n = tree)
 
 """
-	phylodiv(tree::ChronoTree, tipset::Set{<:AbstractString}; 
-		keeproot::Bool=false)
+	phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false)
 
 Calculates the phylogenetic diversity (PD) of a given set of tips on `tree`, 
 i.e., the sum of branch lengths of the subtree generated from the set. 
 The argument `keeproot` controls whether the original root node needs to be 
 contained in the subtree; by default it is set to `false`.
 """
-phylodiv(tree::ChronoTree, tipset::Set{<:AbstractString}; 
-		keeproot::Bool=false) = 
+phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false) = 
 	sum_t_branch(subtree(tree, tipset, simplify=true, keeproot=keeproot))
-
-function cutfromroot(tree::ChronoTree, dist::Real; keep::Symbol=:both)
-	keep in [:both, :parent, :child] ||
-		throw(ArgumentError(
-			"The argument `keep` has to be `:both`, `:parent`, or `:child`!"))
-	pcpairs = NTuple{2,Int}[]
-	for i = 2:length(tree)
-		node = tree[i]
-		tree[node.i_parent].t_root < dist <= node.t_root && 
-			push!(pcpairs, (node.i_parent, i))
-	end
-	keep == :parent && return unique(first.(pcpairs))
-	keep == :child  && return last.(pcpairs)
-	return pcpairs
-end
-
-function cutfromtips(tree::ChronoTree, dist::Real; keep::Symbol=:both)
-	age = getage(tree; average=minimum)
-	cutfromroot(tree, age-dist; keep=keep)
-end
-
-function readnexus(fname::AbstractString; every=0)
-	trees = ChronoTree[]
-	open(fname, "r") do fin
-		line = readline(fin)
-		@assert line == "#NEXUS"
-		oldtonew = Dict{String,String}()
-		stage = 0
-		treecnt = 0
-		while ! eof(fin)
-			line = readline(fin)
-			if line == "\tTranslate"
-				stage = 1
-				continue
-			elseif stage == 1 && line == "\t\t;"
-				stage = 2
-				continue
-			elseif stage == 2 && line == "End;"
-				stage = 3
-				break
-			end
-			if stage == 1
-				old, new = split(strip(line, ['\t', ',']), ' ')
-				oldtonew[old] = new
-			elseif stage == 2
-				str = last(split(strip(line, '\t'), ' '))
-				tree = fromnewick(str, nocomments=true)
-				push!(trees, rename!(tree, oldtonew))
-				every > 0 && (treecnt += 1) % every == 0 && println(treecnt)
-			end
-		end
-	end
-	return trees
-end
 
 end # module TreeOfLife
