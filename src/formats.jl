@@ -1,6 +1,11 @@
 # src/formats.jl
 
+export readnewick, writenewick
 export readnexus
+
+readnewick(fname::AbstractString) = fromnewick(read(fname, String))
+
+writenewick(fname::AbstractString, tree::Tree) = write(fname, tonewick(tree))
 
 function readnexus(fname::AbstractString; every=0)
 	trees = ChronoTree[]
