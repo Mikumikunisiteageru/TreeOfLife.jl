@@ -2,8 +2,6 @@ using TreeOfLife
 const TOL = TreeOfLife
 using Test
 
-cd(joinpath(pkgdir(TreeOfLife), "test", "files"))
-
 @testset "TYPES" begin
 	@test CladoNode  <: AbstractNode
 	@test ChronoNode <: AbstractNode
@@ -58,7 +56,7 @@ end
 	@test isa(tree, ChronoTree)
 	@test length(tree) == 6
 	@test getfield.(tree, :name) == ["F", "A", "B", "E", "C", "D"]
-	moraceae = String(read("moraceae.tre"))
+	moraceae = String(read("files/moraceae.tre"))
 	global tree1 = fromnewick(moraceae)
 	@test length(tree1) == 639
 	@test tree1[1].name == ""
