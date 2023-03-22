@@ -5,10 +5,10 @@ using Test
 cd(joinpath(pkgdir(TreeOfLife), "test", "files"))
 
 @testset "TYPES" begin
-	@test CladoNode  <: Node
-	@test ChronoNode <: Node
-	@test CladoTree  <: Tree
-	@test ChronoTree <: Tree
+	@test CladoNode  <: AbstractNode
+	@test ChronoNode <: AbstractNode
+	@test CladoTree  <: AbstractTree
+	@test ChronoTree <: AbstractTree
 	@test length(CladoTree())  == 0
 	@test length(ChronoTree()) == 0
 	tree = ChronoTree([ChronoNode(name="A"), ChronoNode(name="B")])

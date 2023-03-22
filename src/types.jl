@@ -1,16 +1,16 @@
 # src/types.jl
 
-export Node, CladoNode, ChronoNode
-export Tree, CladoTree, ChronoTree
+export AbstractNode, CladoNode, ChronoNode
+export AbstractTree, CladoTree, ChronoTree
 
 using Parameters
 
 # TYPES
 
-abstract type Node end
-abstract type Tree end
+abstract type AbstractNode end
+abstract type AbstractTree end
 
-@with_kw mutable struct CladoNode <: Node
+@with_kw mutable struct CladoNode <: AbstractNode
 	name::String = ""
 	i_parent::Int = 0
 	i_sibling::Int = 0
@@ -18,7 +18,7 @@ abstract type Tree end
 	dict::Dict{Symbol,Any} = Dict{Symbol,Any}()
 end
 
-@with_kw mutable struct ChronoNode <: Node
+@with_kw mutable struct ChronoNode <: AbstractNode
 	name::String = ""
 	i_parent::Int = 0
 	i_sibling::Int = 0
@@ -28,12 +28,12 @@ end
 	dict::Dict{Symbol,Any} = Dict{Symbol,Any}()
 end
 
-struct CladoTree <: Tree
+struct CladoTree <: AbstractTree
 	nodes::Vector{CladoNode}
 end
 CladoTree() = CladoTree(Vector{CladoNode}())
 
-struct ChronoTree <: Tree
+struct ChronoTree <: AbstractTree
 	nodes::Vector{ChronoNode}
 end
 ChronoTree() = ChronoTree(Vector{ChronoNode}())
@@ -46,16 +46,17 @@ CladoTree(tree::ChronoTree) = CladoTree(CladoNode.(tree))
 
 # BASE METHODS OVERLOADING
 
-Base.length(tree::Tree) = length(tree.nodes)
-Base.getindex(tree::Tree, i) = getindex(tree.nodes, i)
-Base.setindex!(tree::Tree, node::Node, i) = setindex!(tree.nodes, node, i)
-Base.firstindex(tree::Tree) = firstindex(tree.nodes)
-Base.lastindex(tree::Tree) = lastindex(tree.nodes)
-Base.iterate(tree::Tree) = iterate(tree.nodes)
-Base.iterate(tree::Tree, i) = iterate(tree.nodes, i)
-Base.eachindex(tree::Tree) = eachindex(tree.nodes)
-Base.push!(tree::Tree, node::Node) = push!(tree.nodes, node)
-Base.empty(tree::Tree) = typeof(tree)()
+Base.length(tree::AbstractTree) = length(tree.nodes)
+Base.getindex(tree::AbstractTree, i) = getindex(tree.nodes, i)
+Base.setindex!(tree::AbstractTree, node::AbstractNode, i) = 
+	setindex!(tree.nodes, node, i)
+Base.firstindex(tree::AbstractTree) = firstindex(tree.nodes)
+Base.lastindex(tree::AbstractTree) = lastindex(tree.nodes)
+Base.iterate(tree::AbstractTree) = iterate(tree.nodes)
+Base.iterate(tree::AbstractTree, i) = iterate(tree.nodes, i)
+Base.eachindex(tree::AbstractTree) = eachindex(tree.nodes)
+Base.push!(tree::AbstractTree, node::AbstractNode) = push!(tree.nodes, node)
+Base.empty(tree::AbstractTree) = typeof(tree)()
 
 """
 	Base.:(==)(node1::CladoNode, node2::CladoNode)
@@ -86,5 +87,5 @@ end
 Tells if two trees are identical, in the sense that they have the same nodes. 
 Cf. `isisomorph`.
 """
-Base.:(==)(tree1::Tree, tree2::Tree) = 
+Base.:(==)(tree1::AbstractTree, tree2::AbstractTree) = 
 	length(tree1) == length(tree2) && all(tree1 .== tree2)

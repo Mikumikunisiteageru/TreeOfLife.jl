@@ -15,7 +15,7 @@ function count_clades_ages(trees::Vector{ChronoTree}; every::Int=0)
 	counter
 end
 
-function count_clades(trees::Vector{<:Tree}; every::Int=0)
+function count_clades(trees::Vector{<:AbstractTree}; every::Int=0)
 	counter = Dict{Set{String},Int}()
 	ntree = length(trees)
 	for i = 1:ntree
@@ -43,7 +43,8 @@ function construct_tree(parents::Vector{Int})
 	return tree, root
 end
 	
-function consensus(trees::Vector{<:Tree}; threshold::Float64=0.5, every::Int=0)
+function consensus(trees::Vector{<:AbstractTree}; 
+		threshold::Float64=0.5, every::Int=0)
 	0.5 <= threshold <= 1.0 || throw(ArgumentError(
 		"The argument `threshold` has to be in [0.5, 1.0]!"))
 	0.5 == threshold && (threshold += eps(0.5))

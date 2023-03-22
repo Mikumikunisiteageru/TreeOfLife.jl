@@ -28,7 +28,7 @@ function calibrate_t_root!(tree::ChronoTree)
 	tree
 end
 
-calibrate_t_root!(tree::Tree) = tree
+calibrate_t_root!(tree::AbstractTree) = tree
 
 """
 	calibrate_t_branch!(tree::ChronoTree)
@@ -50,7 +50,7 @@ function calibrate_t_branch!(tree::ChronoTree)
 	tree
 end
 
-calibrate_t_branch!(tree::Tree) = tree
+calibrate_t_branch!(tree::AbstractTree) = tree
 
 # PARSING NEWICK-FORMAT TREE STRINGS
 
@@ -218,11 +218,11 @@ end
 
 # NODE JUDGMENTS
 
-isroot(tree::Tree, i::Int) = i == 1
-istip(tree::Tree, i::Int) = tree[i].i_child == 0
-hassibling(tree::Tree, i::Int) = tree[i].i_sibling > 0
-getname(tree::Tree, i::Int) = tree[i].name
-getname(node::Node) = node.name
+isroot(tree::AbstractTree, i::Int) = i == 1
+istip(tree::AbstractTree, i::Int) = tree[i].i_child == 0
+hassibling(tree::AbstractTree, i::Int) = tree[i].i_sibling > 0
+getname(tree::AbstractTree, i::Int) = tree[i].name
+getname(node::AbstractNode) = node.name
 
 # GETTING TIPS AND AGE
 
@@ -231,13 +231,14 @@ getname(node::Node) = node.name
 
 Returns indices of tips nodes on `tree`.
 """
-gettips(tree::Tree) = filter(i -> tree[i].i_child == 0, eachindex(tree))
+gettips(tree::AbstractTree) = 
+	filter(i -> tree[i].i_child == 0, eachindex(tree))
 
-gettipnames(tree::Tree) = getname.(tree[gettips(tree)])
+gettipnames(tree::AbstractTree) = getname.(tree[gettips(tree)])
 
-alldistinct(tree::Tree) = allunique(gettipnames(tree))
+alldistinct(tree::AbstractTree) = allunique(gettipnames(tree))
 
-isbinary(tree::Tree) = all(get_counts(tree, gettipnames(tree)) .== 2)
+isbinary(tree::AbstractTree) = all(get_counts(tree, gettipnames(tree)) .== 2)
 
 """
 	mean(a::Vector{Float64})
@@ -291,12 +292,12 @@ end
 Returns the pre-order traversal sequence of the whole `tree`, or its subtree 
 with root node `tree[i]`.
 """
-function preorder(tree::Tree, i=1)
+function preorder(tree::AbstractTree, i=1)
 	sequence = [i]
 	tree[i].i_child > 0 && preorder!(sequence, tree, tree[i].i_child)
 	sequence
 end
-function preorder!(sequence, tree::Tree, i=1)
+function preorder!(sequence, tree::AbstractTree, i=1)
 	push!(sequence, i)
 	tree[i].i_child > 0 && preorder!(sequence, tree, tree[i].i_child)
 	tree[i].i_sibling > 0 && preorder!(sequence, tree, tree[i].i_sibling)
@@ -308,12 +309,12 @@ end
 Returns the post-order traversal sequence of the whole `tree`, or its subtree 
 with root node `tree[i]`.
 """
-function postorder(tree::Tree, i=1)
+function postorder(tree::AbstractTree, i=1)
 	sequence = Int[]
 	tree[i].i_child > 0 && postorder!(sequence, tree, tree[i].i_child)
 	push!(sequence, i)
 end
-function postorder!(sequence, tree::Tree, i=1)
+function postorder!(sequence, tree::AbstractTree, i=1)
 	tree[i].i_child > 0 && postorder!(sequence, tree, tree[i].i_child)
 	push!(sequence, i)
 	tree[i].i_sibling > 0 && postorder!(sequence, tree, tree[i].i_sibling)
@@ -329,7 +330,7 @@ Creates a new tree whose nodes are respectively renamed from the `oldtree` by
 a mapping from old names to new names. Specifically, nodes with empty names 
 remain.
 """
-function rename(oldtree::Tree, 
+function rename(oldtree::AbstractTree, 
 		oldtonew::Dict{<:AbstractString,<:AbstractString})
 	newtree = deepcopy(oldtree)
 	for node = newtree
@@ -346,7 +347,7 @@ end
 Renames nodes in `tree` by a mapping from old names to new names. 
 Specifically, nodes with empty names remain.
 """
-function rename!(tree::Tree, 
+function rename!(tree::AbstractTree, 
 		oldtonew::Dict{<:AbstractString,<:AbstractString})
 	for node = tree
 		isempty(node.name) && continue
@@ -401,7 +402,7 @@ Selects nodes of a subtree generated from a given set of tips on `tree`. Used
 by `subtree`. 
 Arguments `simplify` and `keeproot` have same meanings as in `subtree`. 
 """
-function get_counts(oldtree::Tree, tipset)
+function get_counts(oldtree::AbstractTree, tipset)
 	counts = zeros(Int, length(oldtree))
 	for i = postorder(oldtree)[1:end-1]
 		if oldtree[i].i_child == 0 && oldtree[i].name in tipset
@@ -425,7 +426,7 @@ contained in the subtree; by default it is set to `false`, in other words,
 yielding a truly minimum spanning tree (MST). 
 When `simplify` is set to `false`, the value of `keeproot` has no effect.
 """
-function subtree(oldtree::Tree, tipset; 
+function subtree(oldtree::AbstractTree, tipset; 
 		simplify::Bool=true, keeproot::Bool=false)
 	counts = get_counts(oldtree, tipset)
 	keeproot && (counts[1] = 2)
@@ -461,14 +462,15 @@ function subtree(oldtree::Tree, tipset;
 	return calibrate_t_branch!(newtree)
 end
 
-getmrca(tree::Tree, tipset) = findfirst(get_counts(tree, tipset) .>= 2)
+getmrca(tree::AbstractTree, tipset) = findfirst(get_counts(tree, tipset) .>= 2)
 
-getdescs(tree::Tree, mrca::Int) = 
+getdescs(tree::AbstractTree, mrca::Int) = 
 	filter(i -> istip(tree, i), preorder(tree, mrca))
 
-getdescnames(tree::Tree, mrca::Int) = getname.(tree[getdescs(tree, mrca)])
+getdescnames(tree::AbstractTree, mrca::Int) = 
+	getname.(tree[getdescs(tree, mrca)])
 
-function getdescnames(tree::Tree)
+function getdescnames(tree::AbstractTree)
 	descnames = [String[] for _ = tree]
 	for i = postorder(tree)[1:end-1]
 		istip(tree, i) && push!(descnames[i], getname(tree, i))
@@ -477,7 +479,7 @@ function getdescnames(tree::Tree)
 	descnames
 end
 
-ismonophyl(tree::Tree, tipset) = 
+ismonophyl(tree::AbstractTree, tipset) = 
 	Set(getdescnames(tree, getmrca(tree, tipset))) == Set(tipset)
 
 """
