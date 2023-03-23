@@ -28,8 +28,8 @@ end
 	@test getmrca(tree, ["C", "D"]) == 4
 	@test getmrca(tree, ["C"]) == 5
 	@test getmrca(tree, ["A", "C"]) == 1
-	@test isnothing(getmrca(tree, []))
-	@test isnothing(getmrca(tree, ["G"]))
+	@test isa(getmrca(tree, []), Nothing)
+	@test isa(getmrca(tree, ["G"]), Nothing)
 end
 
 @testset "getdescnames" begin
