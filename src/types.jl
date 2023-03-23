@@ -145,4 +145,5 @@ isomorphic, and have the same node ordering; specifically, for dated trees or
 Identical trees are always isomorphic (can be tested by [`isomorphic`](@ref)).
 """
 Base.:(==)(tree1::AbstractTree, tree2::AbstractTree) = 
+	typeof(tree1) == typeof(tree2) && 
 	length(tree1) == length(tree2) && all(tree1 .== tree2)
