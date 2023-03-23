@@ -12,6 +12,8 @@ In development.
 
 Alternative packages include:
 - [Phylo.jl](https://github.com/EcoJulia/Phylo.jl) ("in beta", and its outdated prototype [Phylogenetics.jl](https://github.com/SabrinaJaye/Phylogenetics.jl))
+- [PhyloTrees.jl](https://github.com/jangevaare/PhyloTrees.jl)
+- [TreeTools.jl](https://github.com/PierreBarrat/TreeTools.jl)
 - [Phylogenies.jl](https://github.com/BioJulia/Phylogenies.jl) ("in development")
 
 ## Examples
