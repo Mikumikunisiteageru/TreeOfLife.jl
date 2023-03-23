@@ -5,10 +5,25 @@ using Parameters
 export AbstractNode, ChronoNode, CladoNode
 export AbstractTree, ChronoTree, CladoTree
 
+"""
+	AbstractNode
+
+Abstract supertype for [`ChronoNode`](@ref) and [`CladoNode`](@ref).
+"""
 abstract type AbstractNode end
 
+"""
+	AbstractTree
+
+Abstract supertype for [`ChronoTree`](@ref) and [`CladoTree`](@ref).
+"""
 abstract type AbstractTree end
 
+"""
+	ChronoNode <: AbstractNode
+
+Type for nodes in a [`ChronoTree`](@ref). Compare [`CladoNode`](@ref).
+"""
 @with_kw mutable struct ChronoNode <: AbstractNode
 	name::String = ""
 	i_parent::Int = 0
@@ -18,6 +33,16 @@ abstract type AbstractTree end
 	t_branch::Float64 = 0.0
 end
 
+"""
+	CladoNode <: AbstractNode
+	
+	CladoNode(node::ChronoNode) :: CladoNode
+
+Type for nodes in a [`CladoTree`](@ref). 
+
+A [`ChronoNode`](@ref) can be converted to a `CladoNode` by removing all 
+information about time.
+"""
 @with_kw mutable struct CladoNode <: AbstractNode
 	name::String = ""
 	i_parent::Int = 0
@@ -28,18 +53,50 @@ CladoNode(node::ChronoNode) = CladoNode(
 	name=node.name, i_parent=node.i_parent, 
 	i_sibling=node.i_sibling, i_child=node.i_child)
 
+"""
+	ChronoTree <: AbstractTree
+	
+	ChronoTree() :: ChronoTree
+
+Type for chronograms or dated phylogenetic trees, assumed to be rooted, 
+comprising [`ChronoNode`](@ref) instances. Compare [`CladoTree`](@ref). 
+
+When called with no arguments, the constructor returns a `ChronoTree` with 
+only the root node.
+"""
 struct ChronoTree <: AbstractTree
 	nodes::Vector{ChronoNode}
 end
 ChronoTree() = ChronoTree(Vector{ChronoNode}())
 
+"""
+	CladoTree <: AbstractTree
+	
+	CladoTree() :: CladoTree
+	CladoTree(tree::ChronoTree) :: CladoTree
+
+Type for cladograms or undated phylogenetic trees, assumed to be rooted, 
+comprising [`CladoNode`](@ref) instances. 
+
+When called with no arguments, the constructor returns a `CladoTree` with 
+only the root node.
+
+A [`ChronoTree`](@ref) can be converted to a `CladoTree` by removing all 
+information about time.
+"""
 struct CladoTree <: AbstractTree
 	nodes::Vector{CladoNode}
 end
 CladoTree() = CladoTree(Vector{CladoNode}())
 CladoTree(tree::ChronoTree) = CladoTree(CladoNode.(tree))
 
+"""
+	length(tree::AbstractTree) :: Int
+
+Return the number of nodes in a phylogenetic tree.
+"""
 Base.length(tree::AbstractTree) = length(tree.nodes)
+
 Base.getindex(tree::AbstractTree, i) = getindex(tree.nodes, i)
 Base.setindex!(tree::AbstractTree, node::AbstractNode, i) = 
 	setindex!(tree.nodes, node, i)
@@ -49,6 +106,12 @@ Base.iterate(tree::AbstractTree) = iterate(tree.nodes)
 Base.iterate(tree::AbstractTree, i) = iterate(tree.nodes, i)
 Base.eachindex(tree::AbstractTree) = eachindex(tree.nodes)
 Base.push!(tree::AbstractTree, node::AbstractNode) = push!(tree.nodes, node)
+
+"""
+	empty(tree::AbstractTree) :: AbstractTree
+
+Construct a phylogenetic tree with only the root node of the same type.
+"""
 Base.empty(tree::AbstractTree) = typeof(tree)()
 
 """
@@ -75,11 +138,13 @@ function Base.:(==)(node1::ChronoNode, node2::ChronoNode)
 end
 
 """
-	==(tree1::ChronoTree, tree2::ChronoTree) :: Bool
+	==(tree1::AbstractTree, tree2::AbstractTree) :: Bool
 
-Test if two trees are identical, in the sense that they have the same nodes. 
+Test if two trees are identical, in the sense that they are of the same type, 
+isomorphic, and have the same node ordering; specifically, for dated trees or 
+[`ChronoTree`](@ref) instances, the node times are correspondingly equal. 
 
-Identical trees are always isomorphic (tested by [`isomorphic`](@ref)).
+Identical trees are always isomorphic (can be tested by [`isomorphic`](@ref)).
 """
 Base.:(==)(tree1::AbstractTree, tree2::AbstractTree) = 
 	length(tree1) == length(tree2) && all(tree1 .== tree2)
