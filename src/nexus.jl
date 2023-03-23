@@ -2,9 +2,17 @@
 
 export readnexus
 
-function readnexus(fname::AbstractString; every=0)
+"""
+	readnexus(filename::AbstractString; every=0) :: Vector{ChronoTree}
+
+Read dated phylogenetic trees from a Nexus-format file on disk. 
+
+!!! warning
+	Under development; correctness not guaranteed.
+"""
+function readnexus(filename::AbstractString; every=0)
 	trees = ChronoTree[]
-	open(fname, "r") do fin
+	open(filename, "r") do fin
 		line = readline(fin)
 		@assert line == "#NEXUS"
 		oldtonew = Dict{String,String}()
