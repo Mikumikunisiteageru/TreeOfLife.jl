@@ -72,6 +72,7 @@ ChronoTree() = ChronoTree(Vector{ChronoNode}())
 	CladoTree <: AbstractTree
 	
 	CladoTree() :: CladoTree
+	CladoTree(tree::CladoTree) :: CladoTree
 	CladoTree(tree::ChronoTree) :: CladoTree
 
 Type for cladograms or undated phylogenetic trees, assumed to be rooted, 
@@ -86,6 +87,7 @@ struct CladoTree <: AbstractTree
 	nodes::Vector{CladoNode}
 end
 CladoTree() = CladoTree(Vector{CladoNode}())
+CladoTree(tree::CladoTree) = tree
 CladoTree(tree::ChronoTree) = CladoTree(CladoNode.(tree))
 
 """

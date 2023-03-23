@@ -14,11 +14,11 @@ export getdescnames
 # CALIBRATING BRANCH LENGTHS (FOR CHRONOTREES)
 
 """
-	calibrate_t_root!(tree::ChronoTree)
-	calibrate_t_root!(tree::Tree)
+	calibrate_t_root!(tree::ChronoTree) :: ChronoTree
+	calibrate_t_root!(tree::AbstractTree) :: AbstractTree
 
-Calculates all `t_root` values according to `t_branch` values. Used by 
-`fromnewick`.
+Calculate all `t_root` values according to `t_branch` values. Used in 
+[`fromnewick`](@ref).
 """
 function calibrate_t_root!(tree::ChronoTree)
 	for node = tree[2:end]
@@ -26,16 +26,15 @@ function calibrate_t_root!(tree::ChronoTree)
 	end
 	tree
 end
-
 calibrate_t_root!(tree::AbstractTree) = tree
 
 """
-	calibrate_t_branch!(tree::ChronoTree)
-	calibrate_t_branch!(tree::Tree)
+	calibrate_t_branch!(tree::ChronoTree) :: ChronoTree
+	calibrate_t_branch!(tree::AbstractTree) :: AbstractTree
 
-Calibrates all `t_root` values of nodes in `tree`, so that the root's `t_root` 
-is zero, and then recalculates all `t_branch` values according to the new 
-`t_root` values. Used by `subtree`.
+Calibrate all `t_root` values of nodes of the tree so that the root's `t_root` 
+is zero, and then recalculate all `t_branch` values according to the new 
+`t_root` values. Used in [`subtree`](@ref).
 """
 function calibrate_t_branch!(tree::ChronoTree)
 	t_root_offset = tree[1].t_root
@@ -48,55 +47,96 @@ function calibrate_t_branch!(tree::ChronoTree)
 	end
 	tree
 end
-
 calibrate_t_branch!(tree::AbstractTree) = tree
 
-# NODE JUDGMENTS
+# NODE TESTS
 
-isroot(tree::AbstractTree, i::Int) = i == 1
-istip(tree::AbstractTree, i::Int) = tree[i].i_child == 0
-hassibling(tree::AbstractTree, i::Int) = tree[i].i_sibling > 0
-getname(tree::AbstractTree, i::Int) = tree[i].name
+"""
+	isroot(tree::AbstractTree, i::Integer) :: Bool
+
+Test if the `i`-th node of the tree is the root.
+"""
+isroot(tree::AbstractTree, i::Integer) = i_parent == 0
+
+"""
+	istip(tree::AbstractTree, i::Integer) :: Bool
+
+Test if the `i`-th node of the tree is a tip or leaf node.
+"""
+istip(tree::AbstractTree, i::Integer) = tree[i].i_child == 0
+
+"""
+	hassibling(tree::AbstractTree, i::Integer) :: Bool
+
+Test if the `i`-th node of the tree has following sibling(s).
+"""
+hassibling(tree::AbstractTree, i::Integer) = tree[i].i_sibling > 0
+
+"""
+	getname(node::AbstractNode) :: String
+	getname(tree::AbstractTree, i::Integer) :: String
+
+Extract the name of the given node as a string.
+"""
 getname(node::AbstractNode) = node.name
+getname(tree::AbstractTree, i::Integer) = getname(tree[i])
 
 # GETTING TIPS AND AGE
 
 """
-	gettips(tree::Tree)
+	gettips(tree::AbstractTree) :: Vector{Int}
 
-Returns indices of tips nodes on `tree`.
+Return the indices of all tip nodes of the tree.
 """
-gettips(tree::AbstractTree) = 
-	filter(i -> tree[i].i_child == 0, eachindex(tree))
+gettips(tree::AbstractTree) = filter(i -> istip(tree, i), eachindex(tree))
 
+"""
+	gettipnames(tree::AbstractTree) :: Vector{String}
+
+Return the names of all tip nodes of the tree.
+"""
 gettipnames(tree::AbstractTree) = getname.(tree[gettips(tree)])
 
+"""
+	alldistinct(tree::AbstractTree) :: Bool
+
+Test if all tip nodes of the tree have distinct names.
+"""
 alldistinct(tree::AbstractTree) = allunique(gettipnames(tree))
 
+"""
+	isbinary(tree::AbstractTree) :: Bool
+
+Test if the tree is strictly binary or dichotonous, i.e., all non-tip nodes 
+have exactly two descendents. 
+"""
 isbinary(tree::AbstractTree) = all(get_counts(tree, gettipnames(tree)) .== 2)
 
 """
-	mean(a::Vector{Float64})
+	mean_(a::Vector{Float64}) :: Float64
 
-Calculates the arithmetic mean of a vector of float numbers.
+Compute the arithmetic mean of a vector of 64-bit float numbers.
 """
-mean(a::Vector{Float64}) = sum(a) / length(a)
+mean_(a::Vector{Float64}) = sum(a) / length(a)
 
 """
 	getage(tree::ChronoTree; 
-		average=mean, getrelerr::Bool=false, reltol=1e-8)
+		average=mean_, getrelerr::Bool=false, reltol=1e-8) :: Float64
 
-Returns an average age (from the root node) of tip nodes on `tree`. 
+Return an average age (from the root node) of tip nodes of the tree. 
+
 The argument `average` defines the method for summarizing the ages to one; by 
-default it is set to `mean`.
+default it is set to `mean_`.
+
 The argument `getrelerr` controls whether the relative standard deviation is 
 appended to the output (`(mean, relstd)`) or not (only `mean`); by default it 
 is set to `false`.
+
 The argument `reltol` is a tolerance of relative error. By default it is set 
 to `1e-8`. To suppress the judgment, set `reltol=NaN`.
 """
 function getage(tree::ChronoTree; 
-		average=mean, getrelerr::Bool=false, reltol=1e-8)
+		average=mean_, getrelerr::Bool=false, reltol=1e-8)
 	ages = getfield.(tree[gettips(tree)], :t_root)
 	mean = average(ages)
 	relerr = maximum(abs.(ages .- mean)) / mean
@@ -110,7 +150,18 @@ function getage(tree::ChronoTree;
 	end
 end
 
-function getages(tree::ChronoTree; average=mean, reltol=1e-8)
+"""
+	getages(tree::ChronoTree; average=mean_, reltol=1e-8) :: Vector{Float64}
+
+Return ages (from the root node) of all nodes of the tree.
+
+The argument `average` defines the method for summarizing the ages to one; by 
+default it is set to `mean_`.
+
+The argument `reltol` is a tolerance of relative error. By default it is set 
+to `1e-8`. To suppress the judgment, set `reltol=NaN`.
+"""
+function getages(tree::ChronoTree; average=mean_, reltol=1e-8)
 	ages = getfield.(tree[gettips(tree)], :t_root)
 	mean = average(ages)
 	relerr = maximum(abs.(ages .- mean)) / mean
@@ -122,9 +173,9 @@ end
 # TREE TRAVERSALS
 
 """
-	preorder(tree::Tree, i=1)
+	preorder(tree::AbstractTree, i=1) :: Vector{Int}
 
-Returns the pre-order traversal sequence of the whole `tree`, or its subtree 
+Return the pre-order traversal sequence of the whole tree, or its subtree 
 with root node `tree[i]`.
 """
 function preorder(tree::AbstractTree, i=1)
@@ -139,9 +190,9 @@ function preorder!(sequence, tree::AbstractTree, i=1)
 end
 
 """
-	preorder(tree::Tree, i=1)
+	preorder(tree::AbstractTree, i=1) :: Vector{Int}
 
-Returns the post-order traversal sequence of the whole `tree`, or its subtree 
+Return the post-order traversal sequence of the whole tree, or its subtree 
 with root node `tree[i]`.
 """
 function postorder(tree::AbstractTree, i=1)
@@ -158,10 +209,10 @@ end
 # RENAMING TREE NODES (FOR NEXUS FORMAT)
 
 """
-	rename(oldtree::Tree, 
+	rename(oldtree::AbstractTree, 
 		oldtonew::Dict{<:AbstractString,<:AbstractString}
 
-Creates a new tree whose nodes are respectively renamed from the `oldtree` by 
+Create a new tree whose nodes are respectively renamed from the `oldtree` by 
 a mapping from old names to new names. Specifically, nodes with empty names 
 remain.
 """
@@ -179,7 +230,7 @@ end
 	rename!(tree::Tree, 
 		oldtonew::Dict{<:AbstractString,<:AbstractString}
 
-Renames nodes in `tree` by a mapping from old names to new names. 
+Rename nodes of the tree in place by a mapping from old names to new names. 
 Specifically, nodes with empty names remain.
 """
 function rename!(tree::AbstractTree, 
@@ -195,8 +246,9 @@ end
 
 """
 	cutfromroot(tree::ChronoTree, dist::Real; keep::Symbol=:both)
+		:: Union{Vector{NTuple{2,Int}}, Vector{Int}}
 
-Finds the temporal section by `dist` units after the root is born. 
+Find the temporal section by `dist` time units after the root is born. 
 The argument `keep` can be set among three options, i.e., `:both` (tuples 
 containing parents and childs), `:parent`, and `:child`. 
 """
@@ -217,8 +269,9 @@ end
 
 """
 	cutfromtips(tree::ChronoTree, dist::Real; keep::Symbol=:both)
+		:: Union{Vector{NTuple{2,Int}}, Vector{Int}}
 
-Finds the temporal section by `dist` units before the first tip is born.
+Find the temporal section by `dist` time units before the root is born.
 The argument `keep` can be set among three options, i.e., `:both` (tuples 
 containing parents and childs), `:parent`, and `:child`. 
 """
@@ -230,12 +283,13 @@ end
 # ABOUT TIP SUBSETS
 
 """
-	get_selected(oldtree::Tree, tipset; 
-		simplify::Bool=true, keeproot::Bool=false)
+	get_selected(oldtree::AbstractTree, tipset; 
+		simplify::Bool=true, keeproot::Bool=false) :: Vector{Int}
 
-Selects nodes of a subtree generated from a given set of tips on `tree`. Used 
-by `subtree`. 
-Arguments `simplify` and `keeproot` have same meanings as in `subtree`. 
+Select nodes of a subtree generated from a given set of tips of the tree. Used 
+in [`subtree`](@ref) and [`isbinary`](@ref). 
+
+Arguments `simplify` and `keeproot` have same meanings as in [`subtree`](@ref). 
 """
 function get_counts(oldtree::AbstractTree, tipset)
 	counts = zeros(Int, length(oldtree))
@@ -249,16 +303,19 @@ function get_counts(oldtree::AbstractTree, tipset)
 end
 
 """
-	subtree(oldtree::ChronoTree, tipset; 
-		simplify::Bool=true, keeproot::Bool=false)
+	subtree(oldtree::AbstractTree, tipset; 
+		simplify::Bool=true, keeproot::Bool=false) :: AbstractTree
 
-Extracts the subtree generated from a given set of tips on `tree`. 
+Extract the subtree generated from a given set of tips of the tree. 
+
 The argument `simplify` controls whether internal node with only one child 
 needs to be reduced, i.e., connecting directly its child and its parent; by 
 default it is set to `true`. 
+
 The argument `keeproot` controls whether the original root node needs to be 
 contained in the subtree; by default it is set to `false`, in other words, 
 yielding a truly minimum spanning tree (MST). 
+
 When `simplify` is set to `false`, the value of `keeproot` has no effect.
 """
 function subtree(oldtree::AbstractTree, tipset; 
@@ -297,14 +354,30 @@ function subtree(oldtree::AbstractTree, tipset;
 	return calibrate_t_branch!(newtree)
 end
 
+"""
+	getmrca(tree::AbstractTree, tipset) :: Int
+
+Find the index of the most recent common ancestor node for a set of nodes. 
+"""
 getmrca(tree::AbstractTree, tipset) = findfirst(get_counts(tree, tipset) .>= 2)
 
+"""
+	getdescs(tree::AbstractTree, mrca::Int) :: Vector{Int}
+
+Find the indices of all tip descendents from a common ancestor node.
+"""
 getdescs(tree::AbstractTree, mrca::Int) = 
 	filter(i -> istip(tree, i), preorder(tree, mrca))
 
+"""
+	getdescnames(tree::AbstractTree, mrca::Int) :: Vector{String}
+	getdescnames(tree::AbstractTree) :: Vector{Vector{String}}
+
+Find the names of all tip descendents from a common ancestor node, or such 
+descendent name lists for all nodes of the tree.
+"""
 getdescnames(tree::AbstractTree, mrca::Int) = 
 	getname.(tree[getdescs(tree, mrca)])
-
 function getdescnames(tree::AbstractTree)
 	descnames = [String[] for _ = tree]
 	for i = postorder(tree)[1:end-1]
@@ -314,21 +387,27 @@ function getdescnames(tree::AbstractTree)
 	descnames
 end
 
+"""
+	ismonophyl(tree::AbstractTree, tipset) :: Bool
+
+Test if a given set of tip nodes are monophyletic based on the tree.
+"""
 ismonophyl(tree::AbstractTree, tipset) = 
 	Set(getdescnames(tree, getmrca(tree, tipset))) == Set(tipset)
 
 """
 	sum_t_branch(tree::ChronoTree)
 
-Calculates the sum of branch lengths of `tree`. Used by `phylodiv`. 
+Compute the sum of branch lengths of the tree. Used in [`phylodiv`](@ref). 
 """
 sum_t_branch(tree::ChronoTree) = sum(n.t_branch for n = tree)
 
 """
 	phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false)
 
-Calculates the phylogenetic diversity (PD) of a given set of tips on `tree`, 
+Compute the phylogenetic diversity (PD) of a given set of tips of the tree, 
 i.e., the sum of branch lengths of the subtree generated from the set. 
+
 The argument `keeproot` controls whether the original root node needs to be 
 contained in the subtree; by default it is set to `false`.
 """
@@ -337,6 +416,13 @@ phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false) =
 
 # ISOMORPHISM
 
+"""
+	treehash(tree::CladoTree, h::UInt=zero(UInt)) :: UInt
+	treehash(tree::ChronoTree, h::UInt=zero(UInt)) :: UInt
+
+Compute a hash value for a phylogenetic tree so that isomorphic trees 
+necessarily have the same hash value (tested by [`isomorphic`](@ref)).
+"""
 function treehash(tree::CladoTree, h::UInt=zero(UInt))
 	hashes = fill(UInt(1), length(tree))
 	for i = eachindex(tree)[end:-1:2]
@@ -345,7 +431,6 @@ function treehash(tree::CladoTree, h::UInt=zero(UInt))
 	end
 	return hashes[1] * hash(tree[1].name, h)
 end
-
 function treehash(tree::ChronoTree, h::UInt=zero(UInt))
 	hashes = fill(UInt(1), length(tree))
 	for i = eachindex(tree)[end:-1:2]
@@ -355,8 +440,19 @@ function treehash(tree::ChronoTree, h::UInt=zero(UInt))
 	return hashes[1] * hash(tree[1].name, h)
 end
 
+"""
+	isomorphic(tree1::CladoTree, tree2::CladoTree) :: Bool
+	isomorphic(tree1::ChronoTree, tree2::ChronoTree) :: Bool
+
+Test if two trees are isomorphic. 
+
+When both phylogenetic tree are dated, the isomorphism implies that branch 
+lengths are correspondingly equal; otherwise, only the tree topology are 
+compared.
+"""
 isomorphic(tree1::CladoTree, tree2::CladoTree) = 
 	treehash(tree1) == treehash(tree2)
-
 isomorphic(tree1::ChronoTree, tree2::ChronoTree) = 
 	treehash(tree1) == treehash(tree2)
+isomorphic(tree1::AbstractTree, tree2::AbstractTree) = 
+	treehash(CladoTree(tree1)) == treehash(CladoTree(tree2))
