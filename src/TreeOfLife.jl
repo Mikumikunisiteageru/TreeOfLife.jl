@@ -5,7 +5,10 @@ module TreeOfLife
 include("types.jl")
 include("tree.jl")
 include("trees.jl")
-include("formats.jl")
+
+include("newick.jl")
+include("nexus.jl")
+
 include("graphics.jl")
 
 end # module TreeOfLife
