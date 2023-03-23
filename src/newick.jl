@@ -164,3 +164,8 @@ function tonewick(tree::ChronoTree)
 	elements[end] = ';'
 	return join(elements)
 end
+
+readnewick(fname::AbstractString) = fromnewick(read(fname, String))
+
+writenewick(fname::AbstractString, tree::AbstractTree) = 
+	write(fname, tonewick(tree))
