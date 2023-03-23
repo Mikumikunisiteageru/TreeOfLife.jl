@@ -183,10 +183,18 @@ function preorder(tree::AbstractTree, i=1)
 	tree[i].i_child > 0 && preorder!(sequence, tree, tree[i].i_child)
 	sequence
 end
-function preorder!(sequence, tree::AbstractTree, i=1)
+
+"""
+	preorder!(sequence, tree::AbstractTree, i=1) :: Nothing
+
+Append the pre-order traversal sequence of the whole tree, or its subtree 
+with root node `tree[i]`.
+"""
+function preorder!(sequence, tree::AbstractTree, i=1) :: Nothing
 	push!(sequence, i)
 	tree[i].i_child > 0 && preorder!(sequence, tree, tree[i].i_child)
 	tree[i].i_sibling > 0 && preorder!(sequence, tree, tree[i].i_sibling)
+	nothing
 end
 
 """
@@ -200,10 +208,18 @@ function postorder(tree::AbstractTree, i=1)
 	tree[i].i_child > 0 && postorder!(sequence, tree, tree[i].i_child)
 	push!(sequence, i)
 end
-function postorder!(sequence, tree::AbstractTree, i=1)
+
+"""
+	postorder!(sequence, tree::AbstractTree, i=1) :: Nothing
+
+Append the post-order traversal sequence of the whole tree, or its subtree 
+with root node `tree[i]`.
+"""
+function postorder!(sequence, tree::AbstractTree, i=1) :: Nothing
 	tree[i].i_child > 0 && postorder!(sequence, tree, tree[i].i_child)
 	push!(sequence, i)
 	tree[i].i_sibling > 0 && postorder!(sequence, tree, tree[i].i_sibling)
+	nothing
 end
 
 # RENAMING TREE NODES (FOR NEXUS FORMAT)
