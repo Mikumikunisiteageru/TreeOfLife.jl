@@ -4,9 +4,9 @@ export readnewick, writenewick
 export fromnewick, tonewick
 
 """
-	ignore_comments(str::AbstractString)
+	ignore_comments(str::AbstractString) :: String
 
-Gets rid of comments enclosed by square brackets (possibly nested) from `str`.
+Remove comments enclosed by square brackets (possibly nested) in a string.
 """
 function ignore_comments(str::AbstractString)
 	output = ""
@@ -21,10 +21,10 @@ function ignore_comments(str::AbstractString)
 end
 
 """
-	from_newick(str::AbstractString)
+	from_newick(str::AbstractString) :: Vector
 
-Parses a Newick-format tree string into segments of different types according 
-to their syntactical meanings. Used by `fromnewick`.
+Parse a Newick-format tree string into segments of different types according 
+to their syntactical meanings. Used in [`fromnewick`](@ref).
 """
 function from_newick(str::AbstractString)
 	endswith(str, ';') || 
@@ -56,10 +56,11 @@ function from_newick(str::AbstractString)
 end
 
 """
-	get_tree_type(elements::Vector)
+	get_tree_type(elements::Vector) :: 
+		Tuple{Type{<:AbstractTree}, Type{<:AbstractNode}}
 
-Tells whether a vector of elements parsed from some Newick-syntax tree string 
-is a chronogram or a cladogram. Used by `fromnewick`.
+Test whether a vector of elements parsed from some Newick-syntax tree string 
+is a chronogram or a cladogram. Used in [`fromnewick`](@ref).
 """
 function get_tree_type(elements::Vector)
 	n_left  = sum(elements .== '(')
@@ -78,9 +79,12 @@ function get_tree_type(elements::Vector)
 end
 
 """
-	fromnewick(str::AbstractString; nocomments::Bool=false)
+	fromnewick(str::AbstractString; nocomments::Bool=false) :: AbstractTree
 
-Converts a Newick-format tree string `str` to a `ChronoTree` instance.
+Create a phylogenetic tree from a Newick-format tree string.
+
+Its inverse function is [`tonewick`](@ref).
+
 The argument `nocomments` controls whether the comments (enclosed by square 
 brackets) are wiped out; by default it is set to `false`, i.e., all comments 
 are kept.
@@ -118,7 +122,16 @@ function fromnewick(str::AbstractString; nocomments::Bool=false)
 	return calibrate_t_root!(tree)
 end
 
-function to_newick!(elements::Vector, tree::CladoTree, i::Int)
+"""
+	to_newick!(elements::AbstractVector, 
+		tree::CladoTree, i::Integer) :: AbstractVector
+	to_newick!(elements::AbstractVector, 
+		tree::ChronoTree, i::Integer) :: AbstractVector
+
+Convert a phylogenetic tree to segments of a Newick-format string. Used in 
+[`tonewick`](@ref).
+"""
+function to_newick!(elements::AbstractVector, tree::CladoTree, i::Integer)
 	ic = tree[i].i_child
 	if ic == 0
 		push!(elements, tree[i].name)
@@ -132,9 +145,9 @@ function to_newick!(elements::Vector, tree::CladoTree, i::Int)
 		push!(elements, ',')
 		to_newick!(elements, tree, is)
 	end
+	return elements
 end
-
-function to_newick!(elements::Vector, tree::ChronoTree, i::Int)
+function to_newick!(elements::AbstractVector, tree::ChronoTree, i::Integer)
 	ic = tree[i].i_child
 	if ic == 0
 		push!(elements, tree[i].name, ':', tree[i].t_branch)
@@ -148,15 +161,23 @@ function to_newick!(elements::Vector, tree::ChronoTree, i::Int)
 		push!(elements, ',')
 		to_newick!(elements, tree, is)
 	end
+	return elements
 end
 
+"""
+	tonewick(tree::CladoTree) :: String
+	tonewick(tree::ChronoTree) :: String
+
+Express a phylogenetic tree as a Newick-format string.
+
+Its inverse function is [`fromnewick`](@ref).
+"""
 function tonewick(tree::CladoTree)
 	elements = []
 	to_newick!(elements, tree, 1)
 	push!(elements, ';')
 	return join(elements)
 end
-
 function tonewick(tree::ChronoTree)
 	elements = []
 	to_newick!(elements, tree, 1)
@@ -165,7 +186,18 @@ function tonewick(tree::ChronoTree)
 	return join(elements)
 end
 
-readnewick(fname::AbstractString) = fromnewick(read(fname, String))
+"""
+	readnewick(filename::AbstractString) :: AbstractTree
 
-writenewick(fname::AbstractString, tree::AbstractTree) = 
-	write(fname, tonewick(tree))
+Read a phylogenetic tree from disk. Compare [`writenewick`](@ref).
+"""
+readnewick(filename::AbstractString) = 
+	fromnewick(strip(read(filename, String)))
+
+"""
+	readnewick(filename::AbstractString, tree::AbstractTree) :: AbstractTree
+
+Write a phylogenetic tree to disk. Compare [`readnewick`](@ref).
+"""
+writenewick(filename::AbstractString, tree::AbstractTree) = 
+	write(filename, tonewick(tree))
