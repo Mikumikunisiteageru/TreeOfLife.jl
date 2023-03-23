@@ -1,13 +1,12 @@
 # src/types.jl
 
+using Parameters
+
 export AbstractNode, CladoNode, ChronoNode
 export AbstractTree, CladoTree, ChronoTree
 
-using Parameters
-
-# TYPES
-
 abstract type AbstractNode end
+
 abstract type AbstractTree end
 
 @with_kw mutable struct CladoNode <: AbstractNode
@@ -15,7 +14,6 @@ abstract type AbstractTree end
 	i_parent::Int = 0
 	i_sibling::Int = 0
 	i_child::Int = 0
-	dict::Dict{Symbol,Any} = Dict{Symbol,Any}()
 end
 
 @with_kw mutable struct ChronoNode <: AbstractNode
@@ -25,7 +23,6 @@ end
 	i_child::Int = 0
 	t_root::Float64 = 0.0
 	t_branch::Float64 = 0.0
-	dict::Dict{Symbol,Any} = Dict{Symbol,Any}()
 end
 
 struct CladoTree <: AbstractTree
