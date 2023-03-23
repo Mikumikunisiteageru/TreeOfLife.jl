@@ -9,7 +9,7 @@ export subtree, getmrca, ismonophyl, phylodiv
 export cutfromroot, cutfromtips
 export isbinary
 export treehash, isomorphic
-export getdescnames
+export getdescs, getdescnames
 
 # CALIBRATING BRANCH LENGTHS (FOR CHRONOTREES)
 
@@ -198,7 +198,7 @@ function preorder!(sequence, tree::AbstractTree, i=1) :: Nothing
 end
 
 """
-	preorder(tree::AbstractTree, i=1) :: Vector{Int}
+	postorder(tree::AbstractTree, i=1) :: Vector{Int}
 
 Return the post-order traversal sequence of the whole tree, or its subtree 
 with root node `tree[i]`.
