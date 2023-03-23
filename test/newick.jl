@@ -1,5 +1,9 @@
 # test/newick.jl
 
+using TreeOfLife
+const TOL = TreeOfLife
+using Test
+
 @testset "ignore_comments" begin
 	@test TOL.ignore_comments("1[2]3") == "13"
 	@test TOL.ignore_comments("[2]3") == "3"
