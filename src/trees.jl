@@ -2,7 +2,17 @@
 
 export consensus
 
-function count_clades_ages(trees::Vector{ChronoTree}; every::Int=0)
+"""
+	count_clade_ages(trees::Vector{ChronoTree}; every::Int=0) 
+		:: Dict{Set{String}, Vector{Float64}}
+
+Count the age for every possible tip node combination as long as occured at 
+least once in some of the trees. 
+
+The argument `every`, if set to a positive integer, makes the (probably long) 
+analyzing process print a log per `every` trees; the default value is `0`.
+"""
+function count_clade_ages(trees::Vector{ChronoTree}; every::Int=0)
 	counter = Dict{Set{String},Vector{Float64}}()
 	ntree = length(trees)
 	for i = 1:ntree
@@ -15,6 +25,16 @@ function count_clades_ages(trees::Vector{ChronoTree}; every::Int=0)
 	counter
 end
 
+"""
+	count_clades(trees::Vector{<:AbstractTree}; every::Int=0)
+		:: Dict{Set{String}, Int}
+
+Count every possible tip node combination as long as occured at least once in 
+some of the trees. Used in [`consensus`](@ref).
+
+The argument `every`, if set to a positive integer, makes the (probably long) 
+analyzing process print a log per `every` trees; the default value is `0`.
+"""
 function count_clades(trees::Vector{<:AbstractTree}; every::Int=0)
 	counter = Dict{Set{String},Int}()
 	ntree = length(trees)
@@ -28,6 +48,11 @@ function count_clades(trees::Vector{<:AbstractTree}; every::Int=0)
 	counter
 end
 
+"""
+	construct_tree(parents::Vector{Int}) :: Tuple{CladoTree, Int}
+
+Construct a cladogram from parent indices. Used in [`consensus`](@ref).
+"""
 function construct_tree(parents::Vector{Int})
 	m = length(parents)
 	roots = findall(parents .== 0)
@@ -42,7 +67,20 @@ function construct_tree(parents::Vector{Int})
 	end
 	return tree, root
 end
-	
+
+"""
+	consensus(trees::Vector{<:AbstractTree}; 
+		threshold::Float64=0.5, every::Int=0) :: CladoTree
+
+Summarize phylogenetic trees to one such that clades with support rate no less 
+than a threshold remain in the consensus tree. 
+
+The argument `threshold` should be a number between `0.5` and `1.0`; the default 
+value is `0.5`.
+
+The argument `every`, if set to a positive integer, makes the (probably long) 
+analyzing process print a log per `every` trees; the default value is `0`.
+"""
 function consensus(trees::Vector{<:AbstractTree}; 
 		threshold::Float64=0.5, every::Int=0)
 	0.5 <= threshold <= 1.0 || throw(ArgumentError(
