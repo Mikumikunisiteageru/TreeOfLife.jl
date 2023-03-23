@@ -61,8 +61,7 @@ CladoNode(node::ChronoNode) = CladoNode(
 Type for chronograms or dated phylogenetic trees, assumed to be rooted, 
 comprising [`ChronoNode`](@ref) instances. Compare [`CladoTree`](@ref). 
 
-When called with no arguments, the constructor returns a `ChronoTree` with 
-only the root node.
+When called with no arguments, the constructor returns an empty `ChronoTree`.
 """
 struct ChronoTree <: AbstractTree
 	nodes::Vector{ChronoNode}
@@ -78,8 +77,7 @@ ChronoTree() = ChronoTree(Vector{ChronoNode}())
 Type for cladograms or undated phylogenetic trees, assumed to be rooted, 
 comprising [`CladoNode`](@ref) instances. 
 
-When called with no arguments, the constructor returns a `CladoTree` with 
-only the root node.
+When called with no arguments, the constructor returns an empty `CladoTree`.
 
 A [`ChronoTree`](@ref) can be converted to a `CladoTree` by removing all 
 information about time.
