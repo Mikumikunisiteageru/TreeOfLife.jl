@@ -2,19 +2,12 @@
 
 using Parameters
 
-export AbstractNode, CladoNode, ChronoNode
-export AbstractTree, CladoTree, ChronoTree
+export AbstractNode, ChronoNode, CladoNode
+export AbstractTree, ChronoTree, CladoTree
 
 abstract type AbstractNode end
 
 abstract type AbstractTree end
-
-@with_kw mutable struct CladoNode <: AbstractNode
-	name::String = ""
-	i_parent::Int = 0
-	i_sibling::Int = 0
-	i_child::Int = 0
-end
 
 @with_kw mutable struct ChronoNode <: AbstractNode
 	name::String = ""
@@ -25,23 +18,26 @@ end
 	t_branch::Float64 = 0.0
 end
 
-struct CladoTree <: AbstractTree
-	nodes::Vector{CladoNode}
+@with_kw mutable struct CladoNode <: AbstractNode
+	name::String = ""
+	i_parent::Int = 0
+	i_sibling::Int = 0
+	i_child::Int = 0
 end
-CladoTree() = CladoTree(Vector{CladoNode}())
+CladoNode(node::ChronoNode) = CladoNode(
+	name=node.name, i_parent=node.i_parent, 
+	i_sibling=node.i_sibling, i_child=node.i_child)
 
 struct ChronoTree <: AbstractTree
 	nodes::Vector{ChronoNode}
 end
 ChronoTree() = ChronoTree(Vector{ChronoNode}())
 
-CladoNode(node::ChronoNode) = CladoNode(
-	name=node.name, i_parent=node.i_parent, 
-	i_sibling=node.i_sibling, i_child=node.i_child)
-
+struct CladoTree <: AbstractTree
+	nodes::Vector{CladoNode}
+end
+CladoTree() = CladoTree(Vector{CladoNode}())
 CladoTree(tree::ChronoTree) = CladoTree(CladoNode.(tree))
-
-# BASE METHODS OVERLOADING
 
 Base.length(tree::AbstractTree) = length(tree.nodes)
 Base.getindex(tree::AbstractTree, i) = getindex(tree.nodes, i)
@@ -56,10 +52,10 @@ Base.push!(tree::AbstractTree, node::AbstractNode) = push!(tree.nodes, node)
 Base.empty(tree::AbstractTree) = typeof(tree)()
 
 """
-	Base.:(==)(node1::CladoNode, node2::CladoNode)
-	Base.:(==)(node1::ChronoNode, node2::ChronoNode)
+	==(node1::CladoNode, node2::CladoNode) :: Bool
+	==(node1::ChronoNode, node2::ChronoNode) :: Bool
 
-Tells if two nodes are identical, in the sense that they have the same name, 
+Test if two nodes are identical, in the sense that they have the same name, 
 the same parent, sibling, and child, as well as they have approximate branch 
 lengths.
 """
@@ -79,10 +75,11 @@ function Base.:(==)(node1::ChronoNode, node2::ChronoNode)
 end
 
 """
-	Base.:(==)(tree1::ChronoTree, tree2::ChronoTree)
+	==(tree1::ChronoTree, tree2::ChronoTree) :: Bool
 
-Tells if two trees are identical, in the sense that they have the same nodes. 
-Cf. `isisomorph`.
+Test if two trees are identical, in the sense that they have the same nodes. 
+
+Identical trees are always isomorphic (tested by [`isomorphic`](@ref)).
 """
 Base.:(==)(tree1::AbstractTree, tree2::AbstractTree) = 
 	length(tree1) == length(tree2) && all(tree1 .== tree2)
