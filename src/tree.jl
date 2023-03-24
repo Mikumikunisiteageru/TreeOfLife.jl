@@ -5,7 +5,7 @@ export getage, getages
 export preorder, postorder
 export isroot, istip, getname, hassibling
 export rename, rename!
-export subtree, getmrca, ismonophyl, phylodiv
+export getsubtree, getmrca, ismonophyl, phylodiv
 export cutfromroot, cutfromtips
 export isbinary
 export isomorphic
@@ -34,7 +34,7 @@ calibrate_t_root!(tree::AbstractTree) = tree
 
 Calibrate all `t_root` values of nodes of the tree so that the root's `t_root` 
 is zero, and then recalculate all `t_branch` values according to the new 
-`t_root` values. Used in [`subtree`](@ref).
+`t_root` values. Used in [`getsubtree`](@ref).
 """
 function calibrate_t_branch!(tree::ChronoTree)
 	t_root_offset = tree[1].t_root
@@ -175,7 +175,7 @@ end
 """
 	preorder(tree::AbstractTree, i=1) :: Vector{Int}
 
-Return the pre-order traversal sequence of the whole tree, or its subtree 
+Return the pre-order traversal sequence of the whole tree, or its getsubtree 
 with root node `tree[i]`.
 """
 function preorder(tree::AbstractTree, i=1)
@@ -187,7 +187,7 @@ end
 """
 	preorder!(sequence, tree::AbstractTree, i=1) :: Nothing
 
-Append the pre-order traversal sequence of the whole tree, or its subtree 
+Append the pre-order traversal sequence of the whole tree, or its getsubtree 
 with root node `tree[i]`.
 """
 function preorder!(sequence, tree::AbstractTree, i=1) :: Nothing
@@ -200,7 +200,7 @@ end
 """
 	postorder(tree::AbstractTree, i=1) :: Vector{Int}
 
-Return the post-order traversal sequence of the whole tree, or its subtree 
+Return the post-order traversal sequence of the whole tree, or its getsubtree 
 with root node `tree[i]`.
 """
 function postorder(tree::AbstractTree, i=1)
@@ -212,7 +212,7 @@ end
 """
 	postorder!(sequence, tree::AbstractTree, i=1) :: Nothing
 
-Append the post-order traversal sequence of the whole tree, or its subtree 
+Append the post-order traversal sequence of the whole tree, or its getsubtree 
 with root node `tree[i]`.
 """
 function postorder!(sequence, tree::AbstractTree, i=1) :: Nothing
@@ -302,10 +302,10 @@ end
 	get_selected(oldtree::AbstractTree, tipset; 
 		simplify::Bool=true, keeproot::Bool=false) :: Vector{Int}
 
-Select nodes of a subtree generated from a given set of tips of the tree. Used 
-in [`subtree`](@ref) and [`isbinary`](@ref). 
+Select nodes of a getsubtree generated from a given set of tips of the tree. Used 
+in [`getsubtree`](@ref) and [`isbinary`](@ref). 
 
-Arguments `simplify` and `keeproot` have same meanings as in [`subtree`](@ref). 
+Arguments `simplify` and `keeproot` have same meanings as in [`getsubtree`](@ref). 
 """
 function get_counts(oldtree::AbstractTree, tipset)
 	counts = zeros(Int, length(oldtree))
@@ -319,22 +319,22 @@ function get_counts(oldtree::AbstractTree, tipset)
 end
 
 """
-	subtree(oldtree::AbstractTree, tipset; 
+	getsubtree(oldtree::AbstractTree, tipset; 
 		simplify::Bool=true, keeproot::Bool=false) :: AbstractTree
 
-Extract the subtree generated from a given set of tips of the tree. 
+Extract the getsubtree generated from a given set of tips of the tree. 
 
 The argument `simplify` controls whether internal node with only one child 
 needs to be reduced, i.e., connecting directly its child and its parent; by 
 default it is set to `true`. 
 
 The argument `keeproot` controls whether the original root node needs to be 
-contained in the subtree; by default it is set to `false`, in other words, 
+contained in the getsubtree; by default it is set to `false`, in other words, 
 yielding a truly minimum spanning tree (MST). 
 
 When `simplify` is set to `false`, the value of `keeproot` has no effect.
 """
-function subtree(oldtree::AbstractTree, tipset; 
+function getsubtree(oldtree::AbstractTree, tipset; 
 		simplify::Bool=true, keeproot::Bool=false)
 	counts = get_counts(oldtree, tipset)
 	keeproot && (counts[1] = 2)
@@ -422,13 +422,13 @@ sum_t_branch(tree::ChronoTree) = sum(n.t_branch for n = tree)
 	phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false)
 
 Compute the phylogenetic diversity (PD) of a given set of tips of the tree, 
-i.e., the sum of branch lengths of the subtree generated from the set. 
+i.e., the sum of branch lengths of the getsubtree generated from the set. 
 
 The argument `keeproot` controls whether the original root node needs to be 
-contained in the subtree; by default it is set to `false`.
+contained in the getsubtree; by default it is set to `false`.
 """
 phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false) = 
-	sum_t_branch(subtree(tree, tipset, simplify=true, keeproot=keeproot))
+	sum_t_branch(getsubtree(tree, tipset, simplify=true, keeproot=keeproot))
 
 # ISOMORPHISM
 

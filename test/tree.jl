@@ -9,17 +9,17 @@ using Test
 	@test gettips(tree) == [2, 3, 5, 6]
 end
 
-@testset "subtree" begin
-	@test subtree(tree, Set(["A", "B"])) == fromnewick("(A:0.1,B:0.2)F;")
-	@test subtree(tree, Set(["C", "D"])) == fromnewick("(C:0.3,D:0.4)E;")
-	@test subtree(tree, Set(["C", "D"]); simplify=false) == 
+@testset "getsubtree" begin
+	@test getsubtree(tree, Set(["A", "B"])) == fromnewick("(A:0.1,B:0.2)F;")
+	@test getsubtree(tree, Set(["C", "D"])) == fromnewick("(C:0.3,D:0.4)E;")
+	@test getsubtree(tree, Set(["C", "D"]); simplify=false) == 
 		fromnewick("((C:0.3,D:0.4)E:0.5)F;")
-	@test subtree(tree, Set(["C", "D"]); simplify=true, keeproot=true) == 
+	@test getsubtree(tree, Set(["C", "D"]); simplify=true, keeproot=true) == 
 		fromnewick("((C:0.3,D:0.4)E:0.5)F;")
-	@test subtree(tree, Set(["C"]); simplify=true, keeproot=true) == 
+	@test getsubtree(tree, Set(["C"]); simplify=true, keeproot=true) == 
 		fromnewick("(C:0.8)F;")
-	@test subtree(tree, Set(["A", "C"])) == fromnewick("(A:0.1,C:0.8)F;")
-	@test subtree(tree, Set(["A", "C"]); simplify=false) == 
+	@test getsubtree(tree, Set(["A", "C"])) == fromnewick("(A:0.1,C:0.8)F;")
+	@test getsubtree(tree, Set(["A", "C"]); simplify=false) == 
 		fromnewick("(A:0.1,(C:0.3)E:0.5)F;")
 end
 
