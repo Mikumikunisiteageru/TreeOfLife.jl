@@ -67,7 +67,6 @@ phylodiv
 cutfromroot
 cutfromtips
 isbinary
-treehash
 isomorphic
 getdescs
 getdescnames
@@ -83,6 +82,7 @@ TreeOfLife.preorder!
 TreeOfLife.postorder!
 TreeOfLife.get_counts
 TreeOfLife.sum_t_branch
+TreeOfLife.tree_hash
 ```
 
 ## Methods involving multiple trees

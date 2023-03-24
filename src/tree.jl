@@ -8,7 +8,7 @@ export rename, rename!
 export subtree, getmrca, ismonophyl, phylodiv
 export cutfromroot, cutfromtips
 export isbinary
-export treehash, isomorphic
+export isomorphic
 export getdescs, getdescnames
 
 # CALIBRATING BRANCH LENGTHS (FOR CHRONOTREES)
@@ -433,13 +433,13 @@ phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false) =
 # ISOMORPHISM
 
 """
-	treehash(tree::CladoTree, h::UInt=zero(UInt)) :: UInt
-	treehash(tree::ChronoTree, h::UInt=zero(UInt)) :: UInt
+	tree_hash(tree::CladoTree, h::UInt=zero(UInt)) :: UInt
+	tree_hash(tree::ChronoTree, h::UInt=zero(UInt)) :: UInt
 
 Compute a hash value for a phylogenetic tree so that isomorphic trees 
 necessarily have the same hash value (tested by [`isomorphic`](@ref)).
 """
-function treehash(tree::CladoTree, h::UInt=zero(UInt))
+function tree_hash(tree::CladoTree, h::UInt=zero(UInt))
 	hashes = fill(UInt(1), length(tree))
 	for i = eachindex(tree)[end:-1:2]
 		hashes[i] *= hash(tree[i].name, h)
@@ -447,7 +447,7 @@ function treehash(tree::CladoTree, h::UInt=zero(UInt))
 	end
 	return hashes[1] * hash(tree[1].name, h)
 end
-function treehash(tree::ChronoTree, h::UInt=zero(UInt))
+function tree_hash(tree::ChronoTree, h::UInt=zero(UInt))
 	hashes = fill(UInt(1), length(tree))
 	for i = eachindex(tree)[end:-1:2]
 		hashes[i] *= xor(hash(tree[i].name, h), hash(tree[i].t_branch, h)) 
@@ -467,8 +467,8 @@ lengths are correspondingly equal; otherwise, only the tree topology are
 compared.
 """
 isomorphic(tree1::CladoTree, tree2::CladoTree) = 
-	treehash(tree1) == treehash(tree2)
+	tree_hash(tree1) == tree_hash(tree2)
 isomorphic(tree1::ChronoTree, tree2::ChronoTree) = 
-	treehash(tree1) == treehash(tree2)
+	tree_hash(tree1) == tree_hash(tree2)
 isomorphic(tree1::AbstractTree, tree2::AbstractTree) = 
-	treehash(CladoTree(tree1)) == treehash(CladoTree(tree2))
+	tree_hash(CladoTree(tree1)) == tree_hash(CladoTree(tree2))
