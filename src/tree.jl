@@ -175,7 +175,7 @@ end
 """
 	preorder(tree::AbstractTree, i=1) :: Vector{Int}
 
-Return the pre-order traversal sequence of the whole tree, or its getsubtree 
+Return the pre-order traversal sequence of the whole tree, or its subtree 
 with root node `tree[i]`.
 """
 function preorder(tree::AbstractTree, i=1)
@@ -187,7 +187,7 @@ end
 """
 	preorder!(sequence, tree::AbstractTree, i=1) :: Nothing
 
-Append the pre-order traversal sequence of the whole tree, or its getsubtree 
+Append the pre-order traversal sequence of the whole tree, or its subtree 
 with root node `tree[i]`.
 """
 function preorder!(sequence, tree::AbstractTree, i=1) :: Nothing
@@ -200,7 +200,7 @@ end
 """
 	postorder(tree::AbstractTree, i=1) :: Vector{Int}
 
-Return the post-order traversal sequence of the whole tree, or its getsubtree 
+Return the post-order traversal sequence of the whole tree, or its subtree 
 with root node `tree[i]`.
 """
 function postorder(tree::AbstractTree, i=1)
@@ -212,7 +212,7 @@ end
 """
 	postorder!(sequence, tree::AbstractTree, i=1) :: Nothing
 
-Append the post-order traversal sequence of the whole tree, or its getsubtree 
+Append the post-order traversal sequence of the whole tree, or its subtree 
 with root node `tree[i]`.
 """
 function postorder!(sequence, tree::AbstractTree, i=1) :: Nothing
@@ -302,7 +302,7 @@ end
 	get_selected(oldtree::AbstractTree, tipset; 
 		simplify::Bool=true, keeproot::Bool=false) :: Vector{Int}
 
-Select nodes of a getsubtree generated from a given set of tips of the tree. Used 
+Select nodes of a subtree generated from a given set of tips of the tree. Used 
 in [`getsubtree`](@ref) and [`isbinary`](@ref). 
 
 Arguments `simplify` and `keeproot` have same meanings as in [`getsubtree`](@ref). 
@@ -322,14 +322,14 @@ end
 	getsubtree(oldtree::AbstractTree, tipset; 
 		simplify::Bool=true, keeproot::Bool=false) :: AbstractTree
 
-Extract the getsubtree generated from a given set of tips of the tree. 
+Extract the subtree generated from a given set of tips of the tree. 
 
 The argument `simplify` controls whether internal node with only one child 
 needs to be reduced, i.e., connecting directly its child and its parent; by 
 default it is set to `true`. 
 
 The argument `keeproot` controls whether the original root node needs to be 
-contained in the getsubtree; by default it is set to `false`, in other words, 
+contained in the subtree; by default it is set to `false`, in other words, 
 yielding a truly minimum spanning tree (MST). 
 
 When `simplify` is set to `false`, the value of `keeproot` has no effect.
@@ -422,10 +422,10 @@ sum_t_branch(tree::ChronoTree) = sum(n.t_branch for n = tree)
 	phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false)
 
 Compute the phylogenetic diversity (PD) of a given set of tips of the tree, 
-i.e., the sum of branch lengths of the getsubtree generated from the set. 
+i.e., the sum of branch lengths of the subtree generated from the set. 
 
 The argument `keeproot` controls whether the original root node needs to be 
-contained in the getsubtree; by default it is set to `false`.
+contained in the subtree; by default it is set to `false`.
 """
 phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false) = 
 	sum_t_branch(getsubtree(tree, tipset, simplify=true, keeproot=keeproot))
