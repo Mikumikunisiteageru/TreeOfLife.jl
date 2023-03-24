@@ -63,7 +63,7 @@ rename!
 getsubtree
 getmrca
 ismonophyl
-phylodiv
+getphylodiv
 cutfromroot
 cutfromtips
 isbinary
@@ -88,7 +88,7 @@ TreeOfLife.tree_hash
 ## Methods involving multiple trees
 
 ```@docs
-consensus
+getconsensus
 ```
 
 #### Internal functions

@@ -1,6 +1,6 @@
 # src/trees.jl
 
-export consensus
+export getconsensus
 
 """
 	count_clade_ages(trees::Vector{ChronoTree}; every::Int=0) 
@@ -30,7 +30,7 @@ end
 		:: Dict{Set{String}, Int}
 
 Count every possible tip node combination as long as occured at least once in 
-some of the trees. Used in [`consensus`](@ref).
+some of the trees. Used in [`getconsensus`](@ref).
 
 The argument `every`, if set to a positive integer, makes the (probably long) 
 analyzing process print a log per `every` trees; the default value is `0`.
@@ -51,7 +51,7 @@ end
 """
 	construct_tree(parents::Vector{Int}) :: Tuple{CladoTree, Int}
 
-Construct a cladogram from parent indices. Used in [`consensus`](@ref).
+Construct a cladogram from parent indices. Used in [`getconsensus`](@ref).
 """
 function construct_tree(parents::Vector{Int})
 	m = length(parents)
@@ -69,7 +69,7 @@ function construct_tree(parents::Vector{Int})
 end
 
 """
-	consensus(trees::Vector{<:AbstractTree}; 
+	getconsensus(trees::Vector{<:AbstractTree}; 
 		threshold::Float64=0.5, every::Int=0) :: CladoTree
 
 Summarize phylogenetic trees to one such that clades with support rate no less 
@@ -81,7 +81,7 @@ value is `0.5`.
 The argument `every`, if set to a positive integer, makes the (probably long) 
 analyzing process print a log per `every` trees; the default value is `0`.
 """
-function consensus(trees::Vector{<:AbstractTree}; 
+function getconsensus(trees::Vector{<:AbstractTree}; 
 		threshold::Float64=0.5, every::Int=0)
 	0.5 <= threshold <= 1.0 || throw(ArgumentError(
 		"The argument `threshold` has to be in [0.5, 1.0]!"))

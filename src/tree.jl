@@ -5,7 +5,7 @@ export getage, getages
 export preorder, postorder
 export isroot, istip, getname, hassibling
 export rename, rename!
-export getsubtree, getmrca, ismonophyl, phylodiv
+export getsubtree, getmrca, ismonophyl, getphylodiv
 export cutfromroot, cutfromtips
 export isbinary
 export isisomorph
@@ -414,12 +414,12 @@ ismonophyl(tree::AbstractTree, tipset) =
 """
 	sum_t_branch(tree::ChronoTree)
 
-Compute the sum of branch lengths of the tree. Used in [`phylodiv`](@ref). 
+Compute the sum of branch lengths of the tree. Used in [`getphylodiv`](@ref). 
 """
 sum_t_branch(tree::ChronoTree) = sum(n.t_branch for n = tree)
 
 """
-	phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false)
+	getphylodiv(tree::ChronoTree, tipset; keeproot::Bool=false)
 
 Compute the phylogenetic diversity (PD) of a given set of tips of the tree, 
 i.e., the sum of branch lengths of the subtree generated from the set. 
@@ -427,7 +427,7 @@ i.e., the sum of branch lengths of the subtree generated from the set.
 The argument `keeproot` controls whether the original root node needs to be 
 contained in the subtree; by default it is set to `false`.
 """
-phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false) = 
+getphylodiv(tree::ChronoTree, tipset; keeproot::Bool=false) = 
 	sum_t_branch(getsubtree(tree, tipset, simplify=true, keeproot=keeproot))
 
 # ISOMORPHISM
