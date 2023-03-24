@@ -52,6 +52,8 @@ gettipnames
 alldistinct
 getage
 getages
+getparent
+getchildren
 preorder
 postorder
 isroot

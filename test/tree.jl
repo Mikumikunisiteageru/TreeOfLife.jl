@@ -4,9 +4,18 @@ using TreeOfLife
 const TOL = TreeOfLife
 using Test
 
+tree = fromnewick("(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;")
+
 @testset "gettips" begin
-	global tree = fromnewick("(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;")
 	@test gettips(tree) == [2, 3, 5, 6]
+end
+
+@testset "getparent" begin
+	@test getparent.([tree], 1:6) == [0, 1, 1, 1, 4, 4]
+end
+
+@testset "getchildren" begin
+	@test getchildren.([tree], 1:6) == [[2,3,4], [], [], [5,6], [], []]
 end
 
 @testset "getsubtree" begin

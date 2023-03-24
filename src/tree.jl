@@ -2,6 +2,7 @@
 
 export gettips, gettipnames, alldistinct
 export getage, getages
+export getparent, getchildren
 export preorder, postorder
 export isroot, istip, getname, hassibling
 export rename, rename!
@@ -56,7 +57,7 @@ calibrate_t_branch!(tree::AbstractTree) = tree
 
 Test if the `i`-th node of the tree is the root.
 """
-isroot(tree::AbstractTree, i::Integer) = i_parent == 0
+isroot(tree::AbstractTree, i::Integer) = tree[i].i_parent == 0
 
 """
 	istip(tree::AbstractTree, i::Integer) :: Bool
@@ -80,6 +81,27 @@ Extract the name of the given node as a string.
 """
 getname(node::AbstractNode) = node.name
 getname(tree::AbstractTree, i::Integer) = getname(tree[i])
+
+"""
+	getparent(tree::AbstractTree, i::Integer) :: Int
+
+Find the parent or direct ancestor of `tree[i]` and return its index.
+"""
+getparent(tree::AbstractTree, i::Integer) = tree[i].i_parent
+
+"""
+	getchildren(tree::AbstractTree, i::Integer) :: Vector{Int}
+
+Find all children or direct descendents of `tree[i]` and return their indices.
+"""
+function getchildren(tree::AbstractTree, i::Integer)
+	children = Int[]
+	child = tree[i].i_child
+	while true
+		child == 0 ? (return children) : push!(children, child)
+		child = tree[child].i_sibling
+	end
+end
 
 # GETTING TIPS AND AGE
 
