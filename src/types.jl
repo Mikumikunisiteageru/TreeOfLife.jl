@@ -56,6 +56,7 @@ CladoNode(node::ChronoNode) = CladoNode(
 """
 	ChronoTree <: AbstractTree
 	
+	ChronoTree(nodes::AbstractVector{ChronoNode}) :: ChronoTree
 	ChronoTree() :: ChronoTree
 
 Type for chronograms or dated phylogenetic trees, assumed to be rooted, 
@@ -65,6 +66,10 @@ When called with no arguments, the constructor returns an empty `ChronoTree`.
 """
 struct ChronoTree <: AbstractTree
 	nodes::Vector{ChronoNode}
+	traits::Set{Symbol}
+	traitvalues::Dict{Tuple{Int, Symbol}, Any}
+	ChronoTree(nodes::AbstractVector{ChronoNode}) = 
+		new(Vector(nodes), Set{Symbol}(), Dict{Tuple{Int, Symbol}, Any}())
 end
 ChronoTree() = ChronoTree(Vector{ChronoNode}())
 
@@ -72,6 +77,7 @@ ChronoTree() = ChronoTree(Vector{ChronoNode}())
 	CladoTree <: AbstractTree
 	
 	CladoTree() :: CladoTree
+	CladoTree(nodes::AbstractVector{CladoNode}) :: CladoTree
 	CladoTree(tree::CladoTree) :: CladoTree
 	CladoTree(tree::ChronoTree) :: CladoTree
 
@@ -85,6 +91,10 @@ information about time.
 """
 struct CladoTree <: AbstractTree
 	nodes::Vector{CladoNode}
+	traits::Set{Symbol}
+	traitvalues::Dict{Tuple{Int, Symbol}, Any}
+	CladoTree(nodes::AbstractVector{CladoNode}) = 
+		new(Vector(nodes), Set{Symbol}(), Dict{Tuple{Int, Symbol}, Any}())
 end
 CladoTree() = CladoTree(Vector{CladoNode}())
 CladoTree(tree::CladoTree) = tree
@@ -97,9 +107,35 @@ Return the number of nodes in a phylogenetic tree.
 """
 Base.length(tree::AbstractTree) = length(tree.nodes)
 
-Base.getindex(tree::AbstractTree, i) = getindex(tree.nodes, i)
-Base.setindex!(tree::AbstractTree, node::AbstractNode, i) = 
+"""
+	getindex(tree::AbstractTree, i::Integer) :: AbstractNode
+	getindex(tree::AbstractTree, i::Integer, trait::Symbol) :: Any
+	getindex(tree::AbstractTree, trait::Symbol) :: Dict{Int, <:Any}
+
+Get the `i`-th node of the tree, or its trait, or a `Dict` containing the 
+trait of all nodes of the tree. See also [`setindex!`](@ref).
+"""
+Base.getindex(tree::AbstractTree, i::Integer) = getindex(tree.nodes, i)
+Base.getindex(tree::AbstractTree, i::Integer, trait::Symbol) = 
+	getindex(tree.traitvalues, i, trait)
+Base.getindex(tree::AbstractTree, trait::Symbol) = 
+	trait in tree.traits ? 
+		Dict(k[1] => v for (k, v) = tree.traitvalues if k[2] == trait) : 
+		throw(KeyError(trait))
+
+"""
+	setindex!(tree::AbstractTree, node::AbstractNode, i::Integer) :: Vector
+	setindex!(tree::AbstractTree, tv, i::Integer, trait::Symbol) :: Dict
+
+Set the `i`-th node of the tree or its trait. See also [`getindex`](@ref).
+"""
+Base.setindex!(tree::AbstractTree, node::AbstractNode, i::Integer) = 
 	setindex!(tree.nodes, node, i)
+function Base.setindex!(tree::AbstractTree, tv, i::Integer, trait::Symbol)
+	push!(tree.traits, trait)
+	setindex!(tree.traitvalues, tv, i, trait)
+end
+
 Base.firstindex(tree::AbstractTree) = firstindex(tree.nodes)
 Base.lastindex(tree::AbstractTree) = lastindex(tree.nodes)
 Base.iterate(tree::AbstractTree) = iterate(tree.nodes)
