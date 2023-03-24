@@ -39,4 +39,9 @@ using Test
 	@test tree[:color] == Dict(1 => "blue-green")
 	@test tree.traitvalues == Dict((1, :color) => "blue-green")
 	@test tree.traits == Set([:color])
+	@test haskey(tree, :flowercolor) == false
+	@test haskey(tree, 1, :flowercolor) == false
+	@test haskey(tree, :color) == true
+	@test haskey(tree, 1, :color) == true
+	@test haskey(tree, 2, :color) == false
 end

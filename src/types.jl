@@ -136,6 +136,16 @@ function Base.setindex!(tree::AbstractTree, tv, i::Integer, trait::Symbol)
 	setindex!(tree.traitvalues, tv, i, trait)
 end
 
+"""
+	haskey(tree::AbstractTree, trait::Symbol) :: Bool
+	haskey(tree::AbstractTree, i::Integer, trait::Symbol) :: Bool
+
+Test if the tree or its `i`-th node has a trait or a trait value.
+"""
+Base.haskey(tree::AbstractTree, trait::Symbol) = in(trait, tree.traits)
+Base.haskey(tree::AbstractTree, i::Integer, trait::Symbol) = 
+	haskey(tree.traitvalues, (i, trait))
+
 Base.firstindex(tree::AbstractTree) = firstindex(tree.nodes)
 Base.lastindex(tree::AbstractTree) = lastindex(tree.nodes)
 Base.iterate(tree::AbstractTree) = iterate(tree.nodes)

@@ -16,6 +16,7 @@ CladoTree
 length
 getindex
 setindex!
+haskey
 empty
 ==
 ```
