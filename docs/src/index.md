@@ -14,6 +14,8 @@ AbstractTree
 ChronoTree
 CladoTree
 length
+getindex
+setindex!
 empty
 ==
 ```

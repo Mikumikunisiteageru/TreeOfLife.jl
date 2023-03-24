@@ -108,14 +108,14 @@ Return the number of nodes in a phylogenetic tree.
 Base.length(tree::AbstractTree) = length(tree.nodes)
 
 """
-	getindex(tree::AbstractTree, i::Integer) :: AbstractNode
+	getindex(tree::AbstractTree, i) :: Any
 	getindex(tree::AbstractTree, i::Integer, trait::Symbol) :: Any
 	getindex(tree::AbstractTree, trait::Symbol) :: Dict{Int, <:Any}
 
 Get the `i`-th node of the tree, or its trait, or a `Dict` containing the 
 trait of all nodes of the tree. See also [`setindex!`](@ref).
 """
-Base.getindex(tree::AbstractTree, i::Integer) = getindex(tree.nodes, i)
+Base.getindex(tree::AbstractTree, i) = getindex(tree.nodes, i)
 Base.getindex(tree::AbstractTree, i::Integer, trait::Symbol) = 
 	getindex(tree.traitvalues, i, trait)
 Base.getindex(tree::AbstractTree, trait::Symbol) = 
