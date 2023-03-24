@@ -60,14 +60,14 @@ getname
 hassibling
 rename
 rename!
-subtree
+getsubtree
 getmrca
 ismonophyl
 phylodiv
 cutfromroot
 cutfromtips
 isbinary
-isomorphic
+isisomorph
 getdescs
 getdescnames
 ```
@@ -97,4 +97,9 @@ consensus
 TreeOfLife.count_clade_ages
 TreeOfLife.count_clades
 TreeOfLife.construct_tree
+```
+
+## [Index](@id main-index)
+
+```@index
 ```

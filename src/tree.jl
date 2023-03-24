@@ -8,7 +8,7 @@ export rename, rename!
 export getsubtree, getmrca, ismonophyl, phylodiv
 export cutfromroot, cutfromtips
 export isbinary
-export isomorphic
+export isisomorph
 export getdescs, getdescnames
 
 # CALIBRATING BRANCH LENGTHS (FOR CHRONOTREES)
@@ -437,7 +437,7 @@ phylodiv(tree::ChronoTree, tipset; keeproot::Bool=false) =
 	tree_hash(tree::ChronoTree, h::UInt=zero(UInt)) :: UInt
 
 Compute a hash value for a phylogenetic tree so that isomorphic trees 
-necessarily have the same hash value (tested by [`isomorphic`](@ref)).
+necessarily have the same hash value (tested by [`isisomorph`](@ref)).
 """
 function tree_hash(tree::CladoTree, h::UInt=zero(UInt))
 	hashes = fill(UInt(1), length(tree))
@@ -457,8 +457,8 @@ function tree_hash(tree::ChronoTree, h::UInt=zero(UInt))
 end
 
 """
-	isomorphic(tree1::CladoTree, tree2::CladoTree) :: Bool
-	isomorphic(tree1::ChronoTree, tree2::ChronoTree) :: Bool
+	isisomorph(tree1::CladoTree, tree2::CladoTree) :: Bool
+	isisomorph(tree1::ChronoTree, tree2::ChronoTree) :: Bool
 
 Test if two trees are isomorphic. 
 
@@ -466,9 +466,9 @@ When both phylogenetic tree are dated, the isomorphism implies that branch
 lengths are correspondingly equal; otherwise, only the tree topology are 
 compared.
 """
-isomorphic(tree1::CladoTree, tree2::CladoTree) = 
+isisomorph(tree1::CladoTree, tree2::CladoTree) = 
 	tree_hash(tree1) == tree_hash(tree2)
-isomorphic(tree1::ChronoTree, tree2::ChronoTree) = 
+isisomorph(tree1::ChronoTree, tree2::ChronoTree) = 
 	tree_hash(tree1) == tree_hash(tree2)
-isomorphic(tree1::AbstractTree, tree2::AbstractTree) = 
+isisomorph(tree1::AbstractTree, tree2::AbstractTree) = 
 	tree_hash(CladoTree(tree1)) == tree_hash(CladoTree(tree2))

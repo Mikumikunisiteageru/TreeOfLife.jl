@@ -180,7 +180,7 @@ Test if two trees are identical, in the sense that they are of the same type,
 isomorphic, and have the same node ordering; specifically, for dated trees or 
 [`ChronoTree`](@ref) instances, the node times are correspondingly equal. 
 
-Identical trees are always isomorphic (can be tested by [`isomorphic`](@ref)).
+Identical trees are always isomorphic (can be tested by [`isisomorph`](@ref)).
 """
 Base.:(==)(tree1::AbstractTree, tree2::AbstractTree) = 
 	typeof(tree1) == typeof(tree2) && 
