@@ -306,15 +306,17 @@ function cutfromroot(tree::ChronoTree, dist::Real; keep::Symbol=:both)
 end
 
 """
-	cutfromtips(tree::ChronoTree, dist::Real; keep::Symbol=:both)
+	cutfromtips(tree::ChronoTree, dist::Real; 
+		keep::Symbol=:both, average=minimum, reltol=1e-8) 
 		:: Union{Vector{NTuple{2,Int}}, Vector{Int}}
 
 Find the temporal section by `dist` time units before the root is born.
 The argument `keep` can be set among three options, i.e., `:both` (tuples 
 containing parents and childs), `:parent`, and `:child`. 
 """
-function cutfromtips(tree::ChronoTree, dist::Real; keep::Symbol=:both)
-	age = getage(tree; average=minimum)
+function cutfromtips(tree::ChronoTree, dist::Real; 
+		keep::Symbol=:both, average=minimum, reltol=1e-8)
+	age = getage(tree; average=average, reltol=reltol)
 	cutfromroot(tree, age - dist; keep=keep)
 end
 
