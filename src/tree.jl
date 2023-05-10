@@ -143,7 +143,7 @@ mean_(a::Vector{Float64}) = sum(a) / length(a)
 
 """
 	getage(tree::ChronoTree; 
-		average=mean_, getrelerr::Bool=false, reltol=1e-8) :: Float64
+		average=mean_, getrelerr::Bool=false, reltol=1e-6) :: Float64
 
 Return an average age (from the root node) of tip nodes of the tree. 
 
@@ -155,10 +155,10 @@ appended to the output (`(mean, relstd)`) or not (only `mean`); by default it
 is set to `false`.
 
 The argument `reltol` is a tolerance of relative error. By default it is set 
-to `1e-8`. To suppress the judgment, set `reltol=NaN`.
+to `1e-6`. To suppress the judgment, set `reltol=NaN`.
 """
 function getage(tree::ChronoTree; 
-		average=mean_, getrelerr::Bool=false, reltol=1e-8)
+		average=mean_, getrelerr::Bool=false, reltol=1e-6)
 	ages = getfield.(tree[gettips(tree)], :t_root)
 	mean = average(ages)
 	relerr = maximum(abs.(ages .- mean)) / mean
@@ -173,7 +173,7 @@ function getage(tree::ChronoTree;
 end
 
 """
-	getages(tree::ChronoTree; average=mean_, reltol=1e-8) :: Vector{Float64}
+	getages(tree::ChronoTree; average=mean_, reltol=1e-6) :: Vector{Float64}
 
 Return ages (from the root node) of all nodes of the tree.
 
@@ -181,9 +181,9 @@ The argument `average` defines the method for summarizing the ages to one; by
 default it is set to `mean_`.
 
 The argument `reltol` is a tolerance of relative error. By default it is set 
-to `1e-8`. To suppress the judgment, set `reltol=NaN`.
+to `1e-6`. To suppress the judgment, set `reltol=NaN`.
 """
-function getages(tree::ChronoTree; average=mean_, reltol=1e-8)
+function getages(tree::ChronoTree; average=mean_, reltol=1e-6)
 	ages = getfield.(tree[gettips(tree)], :t_root)
 	mean = average(ages)
 	relerr = maximum(abs.(ages .- mean)) / mean
@@ -307,7 +307,7 @@ end
 
 """
 	cutfromtips(tree::ChronoTree, dist::Real; 
-		keep::Symbol=:both, average=minimum, reltol=1e-8) 
+		keep::Symbol=:both, average=minimum, reltol=1e-6) 
 		:: Union{Vector{NTuple{2,Int}}, Vector{Int}}
 
 Find the temporal section by `dist` time units before the root is born.
@@ -315,7 +315,7 @@ The argument `keep` can be set among three options, i.e., `:both` (tuples
 containing parents and childs), `:parent`, and `:child`. 
 """
 function cutfromtips(tree::ChronoTree, dist::Real; 
-		keep::Symbol=:both, average=minimum, reltol=1e-8)
+		keep::Symbol=:both, average=minimum, reltol=1e-6)
 	age = getage(tree; average=average, reltol=reltol)
 	cutfromroot(tree, age - dist; keep=keep)
 end
