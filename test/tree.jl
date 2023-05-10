@@ -62,4 +62,6 @@ end
 	@test cutfromroot(tree, 0.05, keep=:both) == [(1,2), (1,3), (1,4)]
 	@test cutfromroot(tree, 0.05, keep=:parent) == [1]
 	@test cutfromroot(tree, 0.05, keep=:child) == [2, 3, 4]
+	@test cutfromroot(tree, 0.09, keep=:closer) == [1, 2]
+	@test cutfromroot(tree, 0.19, keep=:closer) == [1, 3]
 end

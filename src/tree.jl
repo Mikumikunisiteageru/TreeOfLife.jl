@@ -287,21 +287,24 @@ end
 		:: Union{Vector{NTuple{2,Int}}, Vector{Int}}
 
 Find the temporal section by `dist` time units after the root is born. 
-The argument `keep` can be set among three options, i.e., `:both` (tuples 
-containing parents and childs), `:parent`, and `:child`. 
+The argument `keep` can be set among four options, i.e., `:both` (tuples 
+containing parents and childs), `:parent`, `:child`, or `:closer`. 
 """
 function cutfromroot(tree::ChronoTree, dist::Real; keep::Symbol=:both)
-	keep in [:both, :parent, :child] ||
+	keep in [:both, :parent, :child, :closer] ||
 		throw(ArgumentError(
-			"The argument `keep` has to be `:both`, `:parent`, or `:child`!"))
+			"`keep` must be `:both`, `:parent`, `:child`, or `:closer`!"))
 	pcpairs = NTuple{2,Int}[]
 	for i = 2:length(tree)
 		node = tree[i]
 		tree[node.i_parent].t_root < dist <= node.t_root && 
 			push!(pcpairs, (node.i_parent, i))
 	end
-	keep == :parent && return unique(first.(pcpairs))
+	keep == :parent && return unique!(first.(pcpairs))
 	keep == :child  && return last.(pcpairs)
+	keep == :closer && return sort!(unique(
+		tree[c].t_root - dist < dist - tree[p].t_root ? c : p 
+			for (p, c) = pcpairs))
 	return pcpairs
 end
 
@@ -311,8 +314,8 @@ end
 		:: Union{Vector{NTuple{2,Int}}, Vector{Int}}
 
 Find the temporal section by `dist` time units before the root is born.
-The argument `keep` can be set among three options, i.e., `:both` (tuples 
-containing parents and childs), `:parent`, and `:child`. 
+The argument `keep` can be set among four options, i.e., `:both` (tuples 
+containing parents and childs), `:parent`, `:child`, or `:closer`. 
 """
 function cutfromtips(tree::ChronoTree, dist::Real; 
 		keep::Symbol=:both, average=minimum, reltol=1e-6)
