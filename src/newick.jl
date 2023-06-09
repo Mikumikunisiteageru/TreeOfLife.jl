@@ -90,7 +90,7 @@ brackets) are wiped out; by default it is set to `false`, i.e., all comments
 are kept.
 """
 function fromnewick(str::AbstractString; nocomments::Bool=false)
-	elements = from_newick(str)
+	elements = from_newick(strip(str))
 	T, N = get_tree_type(elements)
 	tree = T([N()])
 	stack = [1, 0]
