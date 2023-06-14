@@ -1,7 +1,7 @@
 name = "TreeOfLife"
 uuid = "84ef9827-9357-47d4-b4e4-19dbb3edd7c1"
 authors = ["Yu-Chang YANG <yang.yc.allium@gmail.com>"]
-version = "0.0.9"
+version = "0.0.10"
 
 [deps]
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
