@@ -52,7 +52,12 @@ function from_newick(str::AbstractString)
 		end
 	end
 	@assert elements[end] == ';'
-	filter(x -> ! in(x, [':', ',', ';']), elements)
+	elements = filter(x -> ! in(x, [':', ',', ';']), elements)
+	if isa(elements[end], Float64) && iszero(elements[end])
+		return elements[1:end-1]
+	else
+		return elements
+	end
 end
 
 """

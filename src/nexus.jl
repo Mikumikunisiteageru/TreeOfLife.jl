@@ -23,7 +23,7 @@ function readnexus(filename::AbstractString; every=0)
 			if line == "\tTranslate"
 				stage = 1
 				continue
-			elseif stage == 1 && line == "\t\t;"
+			elseif stage == 1 && strip(line) == ";"
 				stage = 2
 				continue
 			elseif stage == 2 && line == "End;"
@@ -31,7 +31,7 @@ function readnexus(filename::AbstractString; every=0)
 				break
 			end
 			if stage == 1
-				old, new = split(strip(line, ['\t', ',']), ' ')
+				old, new = split(strip(line, ['\t', ',', ' ']), ' ')
 				oldtonew[old] = new
 			elseif stage == 2
 				str = last(split(strip(line, '\t'), ' '))

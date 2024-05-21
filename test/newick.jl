@@ -22,6 +22,10 @@ end
 	@test TOL.from_newick("(A:0.1,B:0.2,(C:0.3,D:0.4)E:0.5)F;") ==
 		['(', "A", 0.1, "B", 0.2, 
 			  '(', "C", 0.3, "D", 0.4, ')', ("E",), 0.5, ')', ("F",)]
+	@test TOL.from_newick("(A:0.1,B:0.1):0.0;") ==
+		['(', "A", 0.1, "B", 0.1, ')']
+	@test TOL.from_newick("(A:0.1,B:0.1):0.2;") ==
+		['(', "A", 0.1, "B", 0.1, ')', 0.2]
 end
 
 @testset "fromnewick" begin
@@ -43,6 +47,8 @@ end
 	@test tree2[1].name == ""
 	@test tree2[2].name == ""
 	@test tree2[3].name == "296"
+	@test isa(fromnewick("(A:0.1,B:0.1):0.0;"), ChronoTree)
+	@test_throws ArgumentError fromnewick("(A:0.1,B:0.1):0.2;")
 end
 
 @testset "tonewick" begin
