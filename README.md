@@ -39,7 +39,7 @@ julia> tipnames = gettipnames(tree)
 julia> getmrca(tree, tipnames)
 1
 
-julia> phylodiv(tree, tipnames)
+julia> getphylodiv(tree, tipnames)
 1.5
 
 julia> ismonophyl(tree, ["A", "B"])
