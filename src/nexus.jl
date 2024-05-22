@@ -34,6 +34,7 @@ function readnexus(filename::AbstractString; every=0)
 				old, new = split(strip(line, ['\t', ',', ' ']), ' ')
 				oldtonew[old] = new
 			elseif stage == 2
+				isempty(strip(line)) && continue
 				str = last(split(strip(line, '\t'), ' '))
 				tree = fromnewick(str, nocomments=true)
 				push!(trees, rename!(tree, oldtonew))
